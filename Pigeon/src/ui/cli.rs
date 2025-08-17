@@ -1,4 +1,4 @@
-// use crate::storage; // uncomment when storage is wired into CLI flows
+use crate::storage::queue::MessageQueue;
 use clap::{Parser, Subcommand};
 use std::net::SocketAddr;
 
@@ -24,10 +24,10 @@ enum Commands {
     
     /// Compose and queue a message
     Compose {
-        recipient: String,
+        recipient_id: u64,
         message: String,
         #[arg(short, long)]
-        file: Option<String>,
+        queue: Option<String>,
     },
     
     /// Manage message queue
@@ -36,8 +36,11 @@ enum Commands {
         action: QueueAction,
     },
     
-    /// Enable inbox checking
-    Receive,
+    /// Fetch/decrypt inbox (local)
+    Fetch {
+        #[arg(short, long)]
+        queue: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -67,13 +70,10 @@ impl Cli {
                 // Create and store contact
                 println!("Added contact: {}", name);
             }
-            Commands::Compose {
-                recipient,
-                message: _,
-                file: _,
-            } => {
-                // Compose and queue message
-                println!("Message queued for {}", recipient);
+            Commands::Compose { recipient_id, message, queue } => {
+                let queue_path = queue.unwrap_or_else(|| "queue_db".to_string());
+                let id = crate::messaging::compose::compose_message(recipient_id, &message, &queue_path).await?;
+                println!("Queued message {} for {}", id, recipient_id);
             }
             Commands::Queue { action } => match action {
                 QueueAction::List => {
@@ -85,6 +85,15 @@ impl Cli {
                     println!("Canceled message {}", id);
                 }
             },
+            Commands::Fetch { queue } => {
+                let queue_path = queue.unwrap_or_else(|| "queue_db".to_string());
+                let q = MessageQueue::new(&queue_path).map_err(crate::error::Error::Storage)?;
+                for (id, bytes) in q.list_inbox().map_err(crate::error::Error::Storage)? {
+                    let preview = String::from_utf8_lossy(&bytes);
+                    println!("{}: {}", id, preview);
+                }
+            }
+            /*
             Commands::Receive => {
                 #[cfg(feature = "network")]
                 {
@@ -104,6 +113,7 @@ impl Cli {
                     tokio::signal::ctrl_c().await?;
                 }
             }
+            */
         }
         Ok(())
     }

@@ -121,4 +121,21 @@ impl MessageQueue {
             Ok(None)
         }
     }
+
+    pub fn inbox_len(&self) -> usize {
+        self.inbox.len()
+    }
+
+    pub fn list_inbox(&self) -> Result<Vec<(Uuid, Vec<u8>)>, super::Error> {
+        self.inbox
+            .iter()
+            .filter_map(|item| item.ok())
+            .map(|(k, v)| {
+                let mut id_bytes = [0u8; 16];
+                id_bytes.copy_from_slice(&k);
+                let id = Uuid::from_bytes(id_bytes);
+                Ok((id, v.to_vec()))
+            })
+            .collect()
+    }
 }
