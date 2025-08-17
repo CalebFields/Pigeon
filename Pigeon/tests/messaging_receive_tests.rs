@@ -17,8 +17,8 @@ async fn receive_decrypts_and_stores_inbox() {
     let q = MessageQueue::new(queue_path).unwrap();
     // We don't know the UUID here easily; just ensure inbox has at least one entry by peeking known id requires API
     // So we re-enqueue and then fetch first inbox key; for simplicity we ensure there is at least some data by retrieving via iteration over tree
-    // Minimal check: queue length should be > 0 due to delivered record
-    assert!(q.len() >= 1);
+    // Queue should be empty after successful receive (drained)
+    assert!(q.is_empty());
 }
 
 

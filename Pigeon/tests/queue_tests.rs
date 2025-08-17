@@ -17,6 +17,9 @@ fn enqueue_dequeue_persists() {
             created: 0,
             priority: 1,
             status: MessageStatus::Pending,
+            retry_count: 0,
+            next_attempt_at: 0,
+            max_retries: 3,
         };
         q.enqueue(msg).unwrap();
         assert_eq!(q.len(), 1);

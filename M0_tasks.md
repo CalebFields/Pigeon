@@ -27,19 +27,19 @@
 ### Epic: Networking (libp2p)
 - [x] M0-050: Basic libp2p swarm with Noise; request-response protocol stub
   - Acceptance: Two peers establish a secure channel locally
-- [ ] M0-051: Ping service with configurable interval
+- [x] M0-051: Ping service with configurable interval
   - Acceptance: Interval respected; logs show RTT
 
 ### Epic: Messaging Core
-- [ ] M0-060: Compose/receive message types and serialization
+- [x] M0-060: Compose/receive message types and serialization
   - Acceptance: Message structs serialize/deserialize; versioned envelope
-- [ ] M0-061: Send flow: encrypt → enqueue → attempt immediate delivery
+- [x] M0-061: Send flow: encrypt → enqueue → attempt immediate delivery
   - Acceptance: Local integration test succeeds for small payload
-- [ ] M0-062: Receive flow: decrypt → ACK → persist
+- [x] M0-062: Receive flow: decrypt → ACK → persist
   - Acceptance: Local integration test verifies idempotency and ACK
 
 ### Epic: CLI
-- [ ] M0-070: `send`, `fetch`, `config` subcommands
+- [x] M0-070: `send`, `fetch`, `config` subcommands
   - Acceptance: Manual smoke test works; help text documented
 
 ### Epic: Reliability
@@ -47,7 +47,7 @@
   - Acceptance: Simulated failures show retries then dead-lettering
 
 ### Epic: Testing & QA
-- [ ] M0-090: Integration test simulating two peers exchanging messages
+- [x] M0-090: Integration test simulating two peers exchanging messages
   - Acceptance: Round-trip success; persisted queue drains on reconnect
 
 ### Exit Criteria (M0 Done)
