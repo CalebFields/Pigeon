@@ -3,29 +3,29 @@
 ### Epic: Repo, Build, Tooling
 - [x] M0-001: Initialize CI (Windows/Linux): build + tests + clippy fmt gates
   - Acceptance: `cargo test` and `clippy -D warnings` pass in CI
-- [ ] M0-002: Lint/format tooling docs and `make`/powershell helpers
+- [x] M0-002: Lint/format tooling docs and `make`/powershell helpers
   - Acceptance: One-liners to run fmt/lint/test locally
 
 ### Epic: Project Layout Skeleton
-- [ ] M0-010: Crate layout with modules wired (`config`, `crypto`, `messaging`, `network`, `storage`, `ui`)
+- [x] M0-010: Crate layout with modules wired (`config`, `crypto`, `messaging`, `network`, `storage`, `ui`)
   - Acceptance: `cargo build` compiles; public façade in `lib.rs`
-- [ ] M0-011: Coding standards doc committed and referenced in README
+- [x] M0-011: Coding standards doc committed and referenced in README
   - Acceptance: CI checks style (fmt/clippy)
 
 ### Epic: Configuration
-- [ ] M0-020: Load config (TOML) + env overrides
+- [x] M0-020: Load config (TOML) + env overrides
   - Acceptance: Default config loads; env vars override; unit tests cover parsing
 
 ### Epic: Crypto
-- [ ] M0-030: Sodium init + wrappers for XChaCha20-Poly1305 and X25519
+- [x] M0-030: Sodium init + wrappers for XChaCha20-Poly1305 and X25519
   - Acceptance: Encrypt/decrypt roundtrip; ECDH shared secret derivation test
 
 ### Epic: Storage (sled)
-- [ ] M0-040: Persistent message queue (enqueue/dequeue, metadata)
+- [x] M0-040: Persistent message queue (enqueue/dequeue, metadata)
   - Acceptance: Messages persist across restarts; simple unit tests
 
 ### Epic: Networking (libp2p)
-- [ ] M0-050: Basic libp2p swarm with Noise; request-response protocol stub
+- [x] M0-050: Basic libp2p swarm with Noise; request-response protocol stub
   - Acceptance: Two peers establish a secure channel locally
 - [ ] M0-051: Ping service with configurable interval
   - Acceptance: Interval respected; logs show RTT

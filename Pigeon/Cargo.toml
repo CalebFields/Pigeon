@@ -8,7 +8,7 @@ default = []
 network = ["libp2p"]
 
 [dependencies]
-libp2p = { version = "0.52", features = ["tcp", "tokio", "dns", "noise", "yamux", "request-response"], optional = true }
+libp2p = { version = "0.52", features = ["tcp", "tokio", "dns", "noise", "yamux", "request-response", "ping"], optional = true }
 sodiumoxide = "0.2"
 sled = "0.34"
 blake2 = "0.10"
