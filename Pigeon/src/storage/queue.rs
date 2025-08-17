@@ -26,6 +26,7 @@ pub struct MessageQueue {
     db: sled::Db,
     messages: Tree,
     by_created: Tree,
+    inbox: Tree,
 }
 
 #[allow(dead_code)]
@@ -34,7 +35,8 @@ impl MessageQueue {
         let db = sled::open(path)?;
         let messages = db.open_tree("messages")?;
         let by_created = db.open_tree("index_by_created")?;
-        Ok(Self { db, messages, by_created })
+        let inbox = db.open_tree("inbox")?;
+        Ok(Self { db, messages, by_created, inbox })
     }
 
     pub fn enqueue(&self, mut message: QueuedMessage) -> Result<(), super::Error> {
@@ -105,5 +107,18 @@ impl MessageQueue {
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    pub fn store_inbox(&self, message_id: Uuid, plaintext: Vec<u8>) -> Result<(), super::Error> {
+        self.inbox.insert(message_id.as_bytes(), plaintext)?;
+        Ok(())
+    }
+
+    pub fn get_inbox(&self, message_id: Uuid) -> Result<Option<Vec<u8>>, super::Error> {
+        if let Some(v) = self.inbox.get(message_id.as_bytes())? {
+            Ok(Some(v.to_vec()))
+        } else {
+            Ok(None)
+        }
     }
 }
