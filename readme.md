@@ -1,10 +1,13 @@
 # Pigeon
+[![CI](https://github.com/CalebFields/Pigeon/actions/workflows/ci.yml/badge.svg)](https://github.com/CalebFields/Pigeon/actions/workflows/ci.yml)
 Pigeon is a secure, lightweight messaging client that establishes direct encrypted connections between users. Designed with security as the top priority, Pigeon ensures your communications remain private through end-to-end encryption while maintaining minimal network overhead.
 
 ## Docs
 - Coding standards: `CODING_STANDARDS.md`
 - Tech decisions (locked v0): `pigeon_tech_decisions_locked_v_0.md`
 - Milestone tasks: `M0_tasks.md`
+
+Contributors should follow the coding standards above; CI enforces `rustfmt` and `clippy -D warnings` on every push and PR.
 
 ## Dev quickstart
 
