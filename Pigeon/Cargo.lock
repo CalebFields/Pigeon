@@ -2624,10 +2624,12 @@ name = "secure-p2p-msg"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "bincode",
  "blake2",
  "clap",
  "dirs",
+ "futures",
  "hex",
  "hmac",
  "libp2p",

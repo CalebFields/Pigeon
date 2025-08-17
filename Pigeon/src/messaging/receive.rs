@@ -1,4 +1,4 @@
-use crate::storage::queue::{MessageQueue, MessageStatus};
+use crate::storage::queue::MessageQueue;
 use sodiumoxide::crypto::box_::{PublicKey, SecretKey};
 use crate::crypto;
 

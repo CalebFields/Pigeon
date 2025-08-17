@@ -43,7 +43,7 @@
   - Acceptance: Manual smoke test works; help text documented
 
 ### Epic: Reliability
-- [ ] M0-080: Retry with exponential backoff and max retries
+- [x] M0-080: Retry with exponential backoff and max retries
   - Acceptance: Simulated failures show retries then dead-lettering
 
 ### Epic: Testing & QA
@@ -51,9 +51,9 @@
   - Acceptance: Round-trip success; persisted queue drains on reconnect
 
 ### Exit Criteria (M0 Done)
-- [ ] CLI can send and receive a message between two local peers
-- [ ] Persistent queue survives restart and drains on reconnection
-- [ ] CI green with fmt + clippy
-- [ ] Basic ping works and is configurable
+- [x] CLI can send and receive a message between two local peers
+- [x] Persistent queue survives restart and drains on reconnection
+- [x] CI green with fmt + clippy
+- [x] Basic ping works and is configurable
 
 

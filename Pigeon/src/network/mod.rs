@@ -1,5 +1,6 @@
 pub mod ping;
 pub mod protocol;
+pub mod rr;
 
 pub use ping::NetworkManager;
 

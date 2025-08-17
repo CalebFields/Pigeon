@@ -1,14 +1,13 @@
-use crate::{crypto, storage};
 use libp2p::{
     identity,
-    swarm::{SwarmBuilder, SwarmEvent},
+    swarm::{SwarmEvent, SwarmBuilder},
     Multiaddr, PeerId, Swarm, Transport,
 };
-use crate::network::protocol::MessageProtocol;
+use libp2p::ping;
 use std::time::Duration;
 
 pub struct NetworkManager {
-    swarm: Swarm<protocol::MessageProtocol>,
+    swarm: Swarm<ping::Behaviour>,
     local_key: identity::Keypair,
 }
 
@@ -21,14 +20,10 @@ impl NetworkManager {
             .timeout(Duration::from_secs(20))
             .boxed();
 
-        let behaviour = MessageProtocol::new_with_ping(Some(Duration::from_secs(5)));
+        let behaviour = ping::Behaviour::default();
         let peer_id = PeerId::from(local_key.public());
-        
-        let swarm = SwarmBuilder::new(transport, behaviour, peer_id)
-            .executor(Box::new(|fut| {
-                tokio::spawn(fut);
-            }))
-            .build();
+
+        let swarm = SwarmBuilder::with_tokio_executor(transport, behaviour, peer_id).build();
 
         Ok(Self {
             swarm,
@@ -36,8 +31,9 @@ impl NetworkManager {
         })
     }
 
-    pub async fn start(&mut self) {
-        let addr: Multiaddr = "/ip4/0.0.0.0/tcp/0"
+    pub async fn start_with_port(&mut self, port: Option<u16>) {
+        let port = port.unwrap_or(0);
+        let addr: Multiaddr = format!("/ip4/0.0.0.0/tcp/{}", port)
             .parse()
             .expect("Valid multiaddr");
         
@@ -45,6 +41,7 @@ impl NetworkManager {
             .listen_on(addr)
             .expect("Failed to listen on address");
 
+        use libp2p::futures::StreamExt;
         loop {
             match self.swarm.select_next_some().await {
                 SwarmEvent::NewListenAddr { address, .. } => {
@@ -56,24 +53,10 @@ impl NetworkManager {
                 SwarmEvent::ConnectionClosed { peer_id, .. } => {
                     log::info!("Disconnected from peer: {}", peer_id);
                 }
-                SwarmEvent::Behaviour(event) => {
-                    match event {
-                        crate::network::protocol::MessageProtocolEvent::Ping(pe) => {
-                            match pe {
-                                libp2p::ping::Event::Success { rtt, .. } => {
-                                    log::info!("Ping RTT: {:?}", rtt);
-                                }
-                                libp2p::ping::Event::Failure { error, .. } => {
-                                    log::warn!("Ping failure: {:?}", error);
-                                }
-                                other => {
-                                    log::debug!("Ping event: {:?}", other);
-                                }
-                            }
-                        }
-                        other => {
-                            log::debug!("Behaviour event: {:?}", other);
-                        }
+                SwarmEvent::Behaviour(ev) => {
+                    match ev {
+                        ping::Event { result: Ok(s), .. } => log::info!("Ping OK: {:?}", s),
+                        ping::Event { result: Err(e), .. } => log::warn!("Ping failure: {:?}", e),
                     }
                 }
                 event => {
@@ -81,5 +64,9 @@ impl NetworkManager {
                 }
             }
         }
+    }
+
+    pub async fn start(&mut self) {
+        self.start_with_port(None).await
     }
 }
