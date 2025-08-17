@@ -86,8 +86,23 @@ impl Cli {
                 }
             },
             Commands::Receive => {
-                println!("Listening for messages... [Ctrl+C to exit] (network feature disabled)");
-                tokio::signal::ctrl_c().await?;
+                #[cfg(feature = "network")]
+                {
+                    use libp2p::identity;
+                    use crate::network::NetworkManager;
+                    let local_key = identity::Keypair::generate_ed25519();
+                    let mut nm = NetworkManager::new(local_key).map_err(|e| crate::error::Error::Network(e.to_string()))?;
+                    println!("Listening for messages... [Ctrl+C to exit; ping enabled]");
+                    tokio::select! {
+                        _ = nm.start() => {}
+                        _ = tokio::signal::ctrl_c() => {}
+                    }
+                }
+                #[cfg(not(feature = "network"))]
+                {
+                    println!("Listening for messages... [Ctrl+C to exit] (network feature disabled)");
+                    tokio::signal::ctrl_c().await?;
+                }
             }
         }
         Ok(())

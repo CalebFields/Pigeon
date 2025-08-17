@@ -1,5 +1,6 @@
 use libp2p::{
-    request_response::{ProtocolSupport, Behaviour, Event, Codec},
+    ping,
+    request_response::{Behaviour, Codec, Event, ProtocolSupport},
     swarm::NetworkBehaviour,
 };
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -9,25 +10,36 @@ use serde::{Deserialize, Serialize};
 #[behaviour(out_event = "MessageProtocolEvent")]
 pub struct MessageProtocol {
     request_response: Behaviour<FileExchangeCodec>,
+    ping: ping::Behaviour,
 }
 
 impl MessageProtocol {
-    pub fn new() -> Self {
+    pub fn new_with_ping(ping_interval: Option<std::time::Duration>) -> Self {
         let protocol = Behaviour::new(FileExchangeCodec, ProtocolSupport::Full);
-        Self {
-            request_response: protocol,
+        let mut cfg = ping::Config::default();
+        if let Some(int) = ping_interval {
+            cfg = cfg.with_interval(int);
         }
+        let ping_behaviour = ping::Behaviour::new(cfg);
+        Self { request_response: protocol, ping: ping_behaviour }
     }
 }
 
 #[derive(Debug)]
 pub enum MessageProtocolEvent {
     RequestResponse(Event<MessageRequest, MessageResponse>),
+    Ping(ping::Event),
 }
 
 impl From<Event<MessageRequest, MessageResponse>> for MessageProtocolEvent {
     fn from(event: Event<MessageRequest, MessageResponse>) -> Self {
         MessageProtocolEvent::RequestResponse(event)
+    }
+}
+
+impl From<ping::Event> for MessageProtocolEvent {
+    fn from(event: ping::Event) -> Self {
+        MessageProtocolEvent::Ping(event)
     }
 }
 

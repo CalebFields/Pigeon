@@ -21,7 +21,7 @@ impl NetworkManager {
             .timeout(Duration::from_secs(20))
             .boxed();
 
-        let behaviour = MessageProtocol::new();
+        let behaviour = MessageProtocol::new_with_ping(Some(Duration::from_secs(5)));
         let peer_id = PeerId::from(local_key.public());
         
         let swarm = SwarmBuilder::new(transport, behaviour, peer_id)
@@ -55,6 +55,26 @@ impl NetworkManager {
                 }
                 SwarmEvent::ConnectionClosed { peer_id, .. } => {
                     log::info!("Disconnected from peer: {}", peer_id);
+                }
+                SwarmEvent::Behaviour(event) => {
+                    match event {
+                        crate::network::protocol::MessageProtocolEvent::Ping(pe) => {
+                            match pe {
+                                libp2p::ping::Event::Success { rtt, .. } => {
+                                    log::info!("Ping RTT: {:?}", rtt);
+                                }
+                                libp2p::ping::Event::Failure { error, .. } => {
+                                    log::warn!("Ping failure: {:?}", error);
+                                }
+                                other => {
+                                    log::debug!("Ping event: {:?}", other);
+                                }
+                            }
+                        }
+                        other => {
+                            log::debug!("Behaviour event: {:?}", other);
+                        }
+                    }
                 }
                 event => {
                     log::debug!("Unhandled SwarmEvent: {:?}", event);
