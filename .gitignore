@@ -1,1 +1,5 @@
 \n# Ignore local installers and large binaries\nCursorUserSetup-*.exe\n*.msi\n
+
+# Rust build output
+/target/
+
