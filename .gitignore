@@ -1,0 +1,1 @@
+\n# Ignore local installers and large binaries\nCursorUserSetup-*.exe\n*.msi\n
