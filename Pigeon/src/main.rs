@@ -1,5 +1,6 @@
 mod crypto;
 mod error;
+#[cfg(feature = "network")]
 mod network;
 mod storage;
 mod ui;

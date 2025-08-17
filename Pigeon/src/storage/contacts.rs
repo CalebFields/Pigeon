@@ -1,6 +1,4 @@
-use crate::crypto;
 use serde::{Deserialize, Serialize};
-use sled::IVec;
 use std::net::SocketAddr;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -13,10 +11,12 @@ pub struct Contact {
     pub auth_token: [u8; 16],
 }
 
+#[allow(dead_code)]
 pub struct ContactStore {
     db: sled::Db,
 }
 
+#[allow(dead_code)]
 impl ContactStore {
     pub fn new(path: &str) -> Result<Self, super::Error> {
         let db = sled::open(path)?;
@@ -34,7 +34,7 @@ impl ContactStore {
     pub fn get_contact(&self, id: u64) -> Result<Option<Contact>, super::Error> {
         let id_bytes = id.to_be_bytes();
         if let Some(contact_bytes) = self.db.get(id_bytes)? {
-            let contact = bincode::deserialize(&contact_bytes)
+            let contact = bincode::deserialize::<Contact>(&contact_bytes)
                 .map_err(|e| super::Error::Serialization(e.to_string()))?;
             Ok(Some(contact))
         } else {

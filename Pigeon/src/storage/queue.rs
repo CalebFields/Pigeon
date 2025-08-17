@@ -1,4 +1,3 @@
-use crate::crypto;
 use serde::{Deserialize, Serialize};
 use sled::IVec;
 use uuid::Uuid;
@@ -21,10 +20,12 @@ pub enum MessageStatus {
     Delivered(u64), // Delivery timestamp
 }
 
+#[allow(dead_code)]
 pub struct MessageQueue {
     db: sled::Db,
 }
 
+#[allow(dead_code)]
 impl MessageQueue {
     pub fn new(path: &str) -> Result<Self, super::Error> {
         let db = sled::open(path)?;
@@ -45,8 +46,10 @@ impl MessageQueue {
             let mut message: QueuedMessage = bincode::deserialize(&message_bytes)
                 .map_err(|e| super::Error::Serialization(e.to_string()))?;
             message.status = status;
-            message_bytes = bincode::serialize(&message)
-                .map_err(|e| super::Error::Serialization(e.to_string()))?;
+            message_bytes = IVec::from(
+                bincode::serialize(&message)
+                    .map_err(|e| super::Error::Serialization(e.to_string()))?
+            );
             self.db.insert(id_bytes, message_bytes)?;
         }
         Ok(())
@@ -63,7 +66,7 @@ impl MessageQueue {
                     false
                 }
             })
-            .map(|(_, v)| bincode::deserialize(&v).map_err(|e| super::Error::Serialization(e.to_string())))
+            .map(|(_, v)| bincode::deserialize::<QueuedMessage>(&v).map_err(|e| super::Error::Serialization(e.to_string())))
             .collect()
     }
 }

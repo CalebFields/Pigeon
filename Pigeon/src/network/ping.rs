@@ -1,10 +1,10 @@
 use crate::{crypto, storage};
 use libp2p::{
-    identity, noise,
+    identity,
     swarm::{SwarmBuilder, SwarmEvent},
-    tcp::TokioTcpConfig,
-    Multiaddr, PeerId, Swarm,
+    Multiaddr, PeerId, Swarm, Transport,
 };
+use crate::network::protocol::MessageProtocol;
 use std::time::Duration;
 
 pub struct NetworkManager {
@@ -14,18 +14,14 @@ pub struct NetworkManager {
 
 impl NetworkManager {
     pub fn new(local_key: identity::Keypair) -> Result<Self, super::Error> {
-        let transport = TokioTcpConfig::new()
-            .nodelay(true)
+        let transport = libp2p::tcp::tokio::Transport::new(libp2p::tcp::Config::default().nodelay(true))
             .upgrade(libp2p::core::upgrade::Version::V1)
-            .authenticate(
-                noise::NoiseAuthenticated::xx(&local_key)
-                    .expect("Signing libp2p-noise static DH keypair failed"),
-            )
-            .multiplex(libp2p::yamux::YamuxConfig::default())
+            .authenticate(libp2p::noise::Config::new(&local_key).map_err(|e| super::Error::Handshake(e.to_string()))?)
+            .multiplex(libp2p::yamux::Config::default())
             .timeout(Duration::from_secs(20))
             .boxed();
 
-        let behaviour = protocol::MessageProtocol::new();
+        let behaviour = MessageProtocol::new();
         let peer_id = PeerId::from(local_key.public());
         
         let swarm = SwarmBuilder::new(transport, behaviour, peer_id)
@@ -41,7 +37,7 @@ impl NetworkManager {
     }
 
     pub async fn start(&mut self) {
-        let addr: Multiaddr = format!("/ip4/0.0.0.0/tcp/{}", crate::config::DATA_PORT)
+        let addr: Multiaddr = "/ip4/0.0.0.0/tcp/0"
             .parse()
             .expect("Valid multiaddr");
         

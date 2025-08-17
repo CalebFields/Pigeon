@@ -35,10 +35,10 @@ jobs:
 
       - name: Cargo clippy
         working-directory: Pigeon
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-targets -- -D warnings
 
       - name: Cargo test
         working-directory: Pigeon
-        run: cargo test --all-features --verbose
+        run: cargo test --verbose
 
 

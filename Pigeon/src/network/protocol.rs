@@ -1,23 +1,19 @@
 use libp2p::{
-    request_response::{ProtocolSupport, RequestResponse, RequestResponseConfig, RequestResponseEvent},
+    request_response::{ProtocolSupport, Behaviour, Event, Codec},
     swarm::NetworkBehaviour,
-    PeerId,
 };
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use serde::{Deserialize, Serialize};
 
 #[derive(NetworkBehaviour)]
 #[behaviour(out_event = "MessageProtocolEvent")]
 pub struct MessageProtocol {
-    request_response: RequestResponse<FileExchangeCodec>,
+    request_response: Behaviour<FileExchangeCodec>,
 }
 
 impl MessageProtocol {
     pub fn new() -> Self {
-        let protocol = RequestResponse::new(
-            FileExchangeCodec,
-            ProtocolSupport::Full,
-            RequestResponseConfig::default(),
-        );
+        let protocol = Behaviour::new(FileExchangeCodec, ProtocolSupport::Full);
         Self {
             request_response: protocol,
         }
@@ -26,11 +22,11 @@ impl MessageProtocol {
 
 #[derive(Debug)]
 pub enum MessageProtocolEvent {
-    RequestResponse(RequestResponseEvent<MessageRequest, MessageResponse>),
+    RequestResponse(Event<MessageRequest, MessageResponse>),
 }
 
-impl From<RequestResponseEvent<MessageRequest, MessageResponse>> for MessageProtocolEvent {
-    fn from(event: RequestResponseEvent<MessageRequest, MessageResponse>) -> Self {
+impl From<Event<MessageRequest, MessageResponse>> for MessageProtocolEvent {
+    fn from(event: Event<MessageRequest, MessageResponse>) -> Self {
         MessageProtocolEvent::RequestResponse(event)
     }
 }
@@ -49,39 +45,66 @@ pub struct MessageResponse {
     pub received: bool,
 }
 
-impl libp2p::request_response::Codec for FileExchangeCodec {
+impl Codec for FileExchangeCodec {
     type Protocol = String;
     type Request = MessageRequest;
     type Response = MessageResponse;
 
-    fn read_request<T>(&mut self, _: &Self::Protocol, io: &mut T) -> std::io::Result<Self::Request>
+    fn read_request<T>(&mut self, _: &Self::Protocol, io: &mut T) -> std::pin::Pin<Box<dyn std::future::Future<Output = std::io::Result<Self::Request>> + Send + '_>>
     where
         T: tokio::io::AsyncRead + Unpin + Send,
     {
-        let mut len_bytes = [0u8; 4];
-        io.read_exact(&mut len_bytes).await?;
-        let len = u32::from_be_bytes(len_bytes) as usize;
-        
-        let mut buf = vec![0u8; len];
-        io.read_exact(&mut buf).await?;
-        
-        bincode::deserialize(&buf)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+        Box::pin(async move {
+            let mut len_bytes = [0u8; 4];
+            io.read_exact(&mut len_bytes).await?;
+            let len = u32::from_be_bytes(len_bytes) as usize;
+            let mut buf = vec![0u8; len];
+            io.read_exact(&mut buf).await?;
+            bincode::deserialize(&buf)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+        })
     }
 
-    fn write_request<T>(&mut self, _: &Self::Protocol, io: &mut T, req: &Self::Request) -> std::io::Result<()>
+    fn write_request<T>(&mut self, _: &Self::Protocol, io: &mut T, req: Self::Request) -> std::pin::Pin<Box<dyn std::future::Future<Output = std::io::Result<()>> + Send + '_>>
     where
         T: tokio::io::AsyncWrite + Unpin + Send,
     {
-        let bytes = bincode::serialize(req)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-        
-        let len = bytes.len() as u32;
-        io.write_all(&len.to_be_bytes()).await?;
-        io.write_all(&bytes).await?;
-        io.flush().await
+        Box::pin(async move {
+            let bytes = bincode::serialize(&req)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+            let len = bytes.len() as u32;
+            io.write_all(&len.to_be_bytes()).await?;
+            io.write_all(&bytes).await?;
+            io.flush().await
+        })
     }
 
-    // Similar implementations for read_response/write_response
-    // ...
+    fn read_response<T>(&mut self, _: &Self::Protocol, io: &mut T) -> std::pin::Pin<Box<dyn std::future::Future<Output = std::io::Result<Self::Response>> + Send + '_>>
+    where
+        T: tokio::io::AsyncRead + Unpin + Send,
+    {
+        Box::pin(async move {
+            let mut len_bytes = [0u8; 4];
+            io.read_exact(&mut len_bytes).await?;
+            let len = u32::from_be_bytes(len_bytes) as usize;
+            let mut buf = vec![0u8; len];
+            io.read_exact(&mut buf).await?;
+            bincode::deserialize(&buf)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+        })
+    }
+
+    fn write_response<T>(&mut self, _: &Self::Protocol, io: &mut T, resp: Self::Response) -> std::pin::Pin<Box<dyn std::future::Future<Output = std::io::Result<()>> + Send + '_>>
+    where
+        T: tokio::io::AsyncWrite + Unpin + Send,
+    {
+        Box::pin(async move {
+            let bytes = bincode::serialize(&resp)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+            let len = bytes.len() as u32;
+            io.write_all(&len.to_be_bytes()).await?;
+            io.write_all(&bytes).await?;
+            io.flush().await
+        })
+    }
 }

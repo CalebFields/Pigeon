@@ -1,4 +1,4 @@
-use crate::{network, storage, crypto};
+// use crate::storage; // uncomment when storage is wired into CLI flows
 use clap::{Parser, Subcommand};
 use std::net::SocketAddr;
 
@@ -57,11 +57,11 @@ impl Cli {
         match self.command {
             Commands::Add {
                 name,
-                addr,
+                addr: _,
                 public_key,
-                ping_interval,
+                ping_interval: _,
             } => {
-                let pub_key_bytes = hex::decode(&public_key)
+                let _pub_key_bytes = hex::decode(&public_key)
                     .map_err(|e| crate::error::Error::Config(e.to_string()))?;
                 
                 // Create and store contact
@@ -69,8 +69,8 @@ impl Cli {
             }
             Commands::Compose {
                 recipient,
-                message,
-                file,
+                message: _,
+                file: _,
             } => {
                 // Compose and queue message
                 println!("Message queued for {}", recipient);
@@ -86,8 +86,7 @@ impl Cli {
                 }
             },
             Commands::Receive => {
-                println!("Listening for messages... [Ctrl+C to exit]");
-                // Start network components
+                println!("Listening for messages... [Ctrl+C to exit] (network feature disabled)");
                 tokio::signal::ctrl_c().await?;
             }
         }

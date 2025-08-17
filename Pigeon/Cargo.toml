@@ -3,8 +3,12 @@ name = "secure-p2p-msg"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+network = ["libp2p"]
+
 [dependencies]
-libp2p = { version = "0.52", features = ["tcp", "tokio", "dns", "noise", "yamux", "request-response"] }
+libp2p = { version = "0.52", features = ["tcp", "tokio", "dns", "noise", "yamux", "request-response"], optional = true }
 sodiumoxide = "0.2"
 sled = "0.34"
 blake2 = "0.10"
@@ -13,7 +17,7 @@ sha2 = "0.10"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 uuid = { version = "1.3", features = ["v4", "serde"] }
-tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "sync", "time", "signal"] }
 clap = { version = "4.0", features = ["derive"] }
 log = "0.4"
 pretty_env_logger = "0.5"
@@ -21,3 +25,4 @@ anyhow = "1.0"
 thiserror = "1.0"
 rand = "0.8"
 hex = "0.4"
+bincode = "1.3"

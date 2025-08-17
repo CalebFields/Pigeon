@@ -1,9 +1,7 @@
-pub mod manager;
 pub mod ping;
 pub mod protocol;
 
-pub use manager::NetworkManager;
-pub use ping::PingManager;
+pub use ping::NetworkManager;
 
 use thiserror::Error;
 
