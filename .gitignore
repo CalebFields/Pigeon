@@ -3,3 +3,7 @@
 # Rust build output
 /target/
 
+
+# Ignore nested crate target
+Pigeon/target/
+

@@ -1,7 +1,7 @@
 ## M0 – Core Messaging Spike (2–3 weeks) – Task List
 
 ### Epic: Repo, Build, Tooling
-- [ ] M0-001: Initialize CI (Windows/Linux): build + tests + clippy fmt gates
+- [x] M0-001: Initialize CI (Windows/Linux): build + tests + clippy fmt gates
   - Acceptance: `cargo test` and `clippy -D warnings` pass in CI
 - [ ] M0-002: Lint/format tooling docs and `make`/powershell helpers
   - Acceptance: One-liners to run fmt/lint/test locally

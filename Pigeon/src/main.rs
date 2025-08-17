@@ -4,6 +4,8 @@ mod error;
 mod network;
 mod storage;
 mod ui;
+mod config;
+mod messaging;
 
 use anyhow::Result;
 use clap::Parser;
