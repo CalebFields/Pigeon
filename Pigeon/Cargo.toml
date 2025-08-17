@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-libp2p = { version = "0.52", features = ["tcp-tokio", "dns", "noise", "yamux"] }
+libp2p = { version = "0.52", features = ["tcp", "tokio", "dns", "noise", "yamux", "request-response"] }
 sodiumoxide = "0.2"
 sled = "0.34"
 blake2 = "0.10"

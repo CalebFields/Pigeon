@@ -1,0 +1,8 @@
+cargo:rerun-if-env-changed=SODIUM_LIB_DIR
+cargo:rerun-if-env-changed=SODIUM_SHARED
+cargo:rerun-if-env-changed=SODIUM_USE_PKG_CONFIG
+cargo:warning=The path to the usual build directory contains spaces and hence can't be used to build libsodium.  Falling back to use C:\Users\CALEBF~1\AppData\Local\Temp\libsodium-sys\x86_64-pc-windows-msvc\debug.  If running `cargo clean`, ensure you also delete this fallback directory
+cargo:rustc-link-lib=static=libsodium
+cargo:rustc-link-search=native=C:\Users\Caleb Fields\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\libsodium-sys-0.2.7\msvc/x64/Debug/v142/
+cargo:include=C:\Users\CALEBF~1\AppData\Local\Temp\libsodium-sys\x86_64-pc-windows-msvc\debug\source\libsodium\src/libsodium/include
+cargo:lib=C:\Users\Caleb Fields\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\libsodium-sys-0.2.7\msvc/x64/Debug/v142/
