@@ -16,6 +16,7 @@ pub enum Error {
     #[error("Serialization error: {0}")]
     Serialization(String),
     
+    #[allow(dead_code)]
     #[error("Contact not found: {0}")]
     ContactNotFound(String),
 }
