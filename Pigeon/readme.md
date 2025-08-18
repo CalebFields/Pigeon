@@ -71,3 +71,4 @@ cargo build --release
   - `docs/M0_tasks.md`, `docs/M1_tasks.md`, `docs/M2_tasks.md` (milestone tracking)
   - `docs/CODING_STANDARDS.md`
   - `docs/TECH_DECISIONS_LOCKED_V0.md`
+  - `docs/PROJECT_LAYOUT.md`
