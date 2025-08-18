@@ -1,6 +1,8 @@
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::time::{timeout, Duration};
 
 #[derive(Default, Clone)]
 pub struct Metrics {
@@ -41,15 +43,18 @@ pub async fn serve(addr: SocketAddr, metrics: Metrics) -> std::io::Result<()> {
         let (socket, _) = listener.accept().await?;
         let m = metrics.clone();
         tokio::spawn(async move {
-            // Read minimal request and respond using blocking std I/O on a background task is fine for ops
+            let mut sock = socket;
+            // Read a little from the client (best-effort) so HTTP clients don't error on early close
             let mut buf = [0u8; 1024];
-            let _ = socket.try_read(&mut buf);
+            let _ = timeout(Duration::from_millis(250), sock.read(&mut buf)).await;
+
             let body = m.render_prometheus();
             let resp = format!(
-                "HTTP/1.1 200 OK\r\nContent-Type: text/plain; version=0.0.4\r\nContent-Length: {}\r\n\r\n{}",
+                "HTTP/1.1 200 OK\r\nContent-Type: text/plain; version=0.0.4\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
                 body.len(), body
             );
-            let _ = socket.try_write(resp.as_bytes());
+            let _ = sock.write_all(resp.as_bytes()).await;
+            let _ = sock.shutdown().await;
         });
     }
 }

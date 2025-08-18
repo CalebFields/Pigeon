@@ -8,3 +8,5 @@ pub mod network;
 pub mod ops;
 pub mod storage;
 pub mod ui;
+pub mod api;
+pub mod settings;
