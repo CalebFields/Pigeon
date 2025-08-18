@@ -29,13 +29,16 @@ jobs:
             . -> target
 
       - name: Build
-        run: cargo build
+        run: cargo build --all-targets
 
       - name: Run GUI API smoke
         run: cargo test --test gui_api_smoke -- --nocapture
 
       - name: Run Messaging UI watcher tests
         run: cargo test --test messaging_ui_watcher_tests -- --nocapture
+
+      - name: Build GUI binary
+        run: cargo build --bin pigeon-gui --release
 
       - name: Upload logs on failure
         if: failure()

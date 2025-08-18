@@ -33,6 +33,9 @@ futures = "0.3"
 argon2 = "0.5"
 once_cell = "1.19"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+egui = "0.27"
+eframe = { version = "0.27", default-features = true }
+notify-rust = { version = "4" }
 
 [dev-dependencies]
 tempfile = "3"

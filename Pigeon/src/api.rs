@@ -5,7 +5,7 @@ use crate::config::{self, AppConfig};
 use crate::storage::contacts::{Contact, ContactStore};
 use crate::storage::queue::{DeadLetterRecord, MessageQueue, QueuedMessage};
 use crate::ops;
-use crate::settings::{self, AccessibilitySettings};
+use crate::settings::{self, AccessibilitySettings, AppState};
 use uuid::Uuid;
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
@@ -353,6 +353,12 @@ impl Core {
         Ok(())
     }
 
+    /// Rotate at-rest key and seal with passphrase
+    pub fn rotate_at_rest_key(&self, passphrase: &str) -> Result<(), crate::error::Error> {
+        crate::storage::at_rest::rotate_key_and_seal(&self.cfg.data_dir, passphrase)
+            .map_err(crate::error::Error::Storage)
+    }
+
     // Accessibility settings
     pub fn get_accessibility(&self) -> Result<AccessibilitySettings, crate::error::Error> {
         settings::load_accessibility_settings(&self.cfg.data_dir).map_err(crate::error::Error::Io)
@@ -364,6 +370,15 @@ impl Core {
     ) -> Result<(), crate::error::Error> {
         settings::save_accessibility_settings(&self.cfg.data_dir, &s)
             .map_err(crate::error::Error::Io)
+    }
+
+    // App state (onboarding flag)
+    pub fn get_app_state(&self) -> Result<AppState, crate::error::Error> {
+        settings::load_app_state(&self.cfg.data_dir).map_err(crate::error::Error::Io)
+    }
+
+    pub fn set_app_state(&self, s: AppState) -> Result<(), crate::error::Error> {
+        settings::save_app_state(&self.cfg.data_dir, &s).map_err(crate::error::Error::Io)
     }
 
     // Settings - general
@@ -459,6 +474,10 @@ pub struct InboxWatcher {
 impl InboxWatcher {
 	pub async fn recv(&mut self) -> Option<InboxSnapshot> {
 		self.rx.recv().await
+	}
+
+	pub fn try_recv(&mut self) -> Option<InboxSnapshot> {
+		self.rx.try_recv().ok()
 	}
 }
 

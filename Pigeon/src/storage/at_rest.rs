@@ -172,6 +172,33 @@ pub fn set_passphrase_and_seal(data_dir: &Path, passphrase: &str) -> Result<(), 
     Ok(())
 }
 
+/// Rotate the at-rest key by generating a fresh key and sealing it with the given passphrase.
+pub fn rotate_key_and_seal(data_dir: &Path, passphrase: &str) -> Result<(), super::Error> {
+    fs::create_dir_all(data_dir).map_err(|e| super::Error::Serialization(e.to_string()))?;
+    // Generate fresh key
+    let key = secretbox::gen_key();
+
+    // Derive KEK
+    let mut salt = [0u8; 16];
+    rand::thread_rng().fill_bytes(&mut salt);
+    let kek = derive_key_from_passphrase(passphrase, &salt)?;
+    let nonce = secretbox::gen_nonce();
+    let sealed = secretbox::seal(key.0.as_slice(), &nonce, &kek);
+
+    // Write enc file
+    let mut out = Vec::with_capacity(4 + salt.len() + secretbox::NONCEBYTES + sealed.len());
+    out.extend_from_slice(MAGIC);
+    out.extend_from_slice(&salt);
+    out.extend_from_slice(nonce.0.as_slice());
+    out.extend_from_slice(&sealed);
+    let enc_path = data_dir.join(ENC_KEY_FILE);
+    fs::write(&enc_path, &out).map_err(|e| super::Error::Serialization(e.to_string()))?;
+    // Remove plaintext key if exists
+    let _ = fs::remove_file(data_dir.join(KEY_FILE));
+    cache_key_for(data_dir, &key);
+    Ok(())
+}
+
 #[cfg(test)]
 pub fn test_clear_cache() {
     if let Ok(mut guard) = CACHED_KEYS.lock() {

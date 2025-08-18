@@ -30,13 +30,30 @@ jobs:
       - name: Build release
         run: cargo build --release
 
-      - name: Archive artifact
+      - name: Package installers (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p dist
+          cp target/release/secure-p2p-msg dist/
+          cp target/release/pigeon-gui dist/ || true
+          tar -C dist -czf pigeon-${{ runner.os }}.tar.gz .
+
+      - name: Package installers (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item target/release/secure-p2p-msg.exe dist/
+          if (Test-Path target/release/pigeon-gui.exe) { Copy-Item target/release/pigeon-gui.exe dist/ }
+          Compress-Archive -Path dist/* -DestinationPath pigeon-Windows.zip -Force
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: pigeon-${{ runner.os }}
           path: |
-            target/release/*pigeon* 
-            target/release/*secure* 
+            pigeon-*.tar.gz
+            pigeon-*.zip
 
   publish:
     name: publish GitHub Release
