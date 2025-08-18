@@ -1,5 +1,7 @@
 pub mod contacts;
 pub mod queue;
+pub mod at_rest;
+pub mod nonce_store;
 
 #[allow(unused_imports)]
 pub use contacts::ContactStore;
@@ -15,6 +17,10 @@ pub enum Error {
     
     #[error("Serialization error: {0}")]
     Serialization(String),
+    #[error("Validation error: {0}")]
+    Validation(String),
+    #[error("Crypto error: {0}")]
+    Crypto(String),
     
     #[allow(dead_code)]
     #[error("Contact not found: {0}")]

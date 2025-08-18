@@ -6,5 +6,6 @@ pub mod storage;
 pub mod ui;
 pub mod config;
 pub mod messaging;
+pub mod identity;
 
 

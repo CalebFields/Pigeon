@@ -4,7 +4,7 @@ use secure_p2p_msg::storage::queue::MessageQueue;
 #[tokio::test]
 async fn send_enqueues_ciphertext() {
     sodiumoxide::init().unwrap();
-    let (pk_a, sk_a) = sodiumoxide::crypto::box_::gen_keypair();
+    let (_pk_a, sk_a) = sodiumoxide::crypto::box_::gen_keypair();
     let (pk_b, _sk_b) = sodiumoxide::crypto::box_::gen_keypair();
 
     let dir = tempfile::tempdir().unwrap();

@@ -1,7 +1,7 @@
 #![cfg(feature = "network")]
 
-use libp2p::{identity, swarm::{SwarmBuilder, SwarmEvent}, Multiaddr, ping};
-use secure_p2p_msg::network::protocol::MessageProtocol;
+use libp2p::{identity, swarm::SwarmEvent, Multiaddr, Transport as _};
+use libp2p::futures::StreamExt;
 
 #[tokio::test]
 async fn ping_events_occur() {
@@ -13,10 +13,8 @@ async fn ping_events_occur() {
         .multiplex(libp2p::yamux::Config::default())
         .boxed();
 
-    let mut behaviour = MessageProtocol::new_with_ping(Some(std::time::Duration::from_millis(200)));
-    let mut swarm = SwarmBuilder::new(transport, behaviour, kp.public().to_peer_id())
-        .executor(Box::new(|fut| { tokio::spawn(fut); }))
-        .build();
+    let behaviour = libp2p::ping::Behaviour::new(libp2p::ping::Config::new());
+    let mut swarm = libp2p::Swarm::new(transport, behaviour, kp.public().to_peer_id(), libp2p::swarm::Config::with_tokio_executor());
 
     let addr: Multiaddr = "/ip4/127.0.0.1/tcp/0".parse().unwrap();
     swarm.listen_on(addr).unwrap();

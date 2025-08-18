@@ -1,5 +1,8 @@
 # 🕊️ Pigeon: Secure Peer-to-Peer Messaging
 
+[![CI](https://img.shields.io/github/actions/workflow/status/yourusername/pigeon/ci.yml?branch=main)](https://github.com/yourusername/pigeon/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-tarpaulin-green)](https://github.com/yourusername/pigeon/actions/workflows/ci.yml)
+
 **Pigeon** is a secure, lightweight messaging client that establishes direct encrypted connections between users. Designed with privacy and security at its core, Pigeon provides robust end-to-end encryption without the need for centralized servers—ensuring that your communications remain confidential and resilient.
 
 ---
@@ -61,3 +64,10 @@
 git clone https://github.com/yourusername/pigeon.git
 cd pigeon
 cargo build --release
+ 
+## 📚 Documentation
+
+- Internal docs are in `docs/`:
+  - `docs/M0_tasks.md`, `docs/M1_tasks.md` (milestone tracking)
+  - `docs/CODING_STANDARDS.md`
+  - `docs/TECH_DECISIONS_LOCKED_V0.md`

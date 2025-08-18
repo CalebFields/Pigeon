@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sled::{IVec, Tree};
+use sled::Tree;
 use uuid::Uuid;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -65,9 +65,13 @@ impl MessageQueue {
             message.next_attempt_at = message.created;
         }
         let id_bytes = message.id.as_bytes();
+        // encrypt-at-rest
+        let cfg = crate::config::load();
+        let key = super::at_rest::AtRestKey::load_or_create(&cfg.data_dir)?;
         let message_bytes = bincode::serialize(&message)
             .map_err(|e| super::Error::Serialization(e.to_string()))?;
-        self.messages.insert(id_bytes, message_bytes)?;
+        let sealed = super::at_rest::encrypt(&key, &message_bytes)?;
+        self.messages.insert(id_bytes, sealed)?;
         // Index by next_attempt_at to support exponential backoff scheduling
         let mut key = Vec::with_capacity(8 + id_bytes.len());
         key.extend_from_slice(&message.next_attempt_at.to_be_bytes());
@@ -93,7 +97,11 @@ impl MessageQueue {
             }
             let id_bytes = v.as_ref();
             if let Some(bytes) = self.messages.get(id_bytes)? {
-                let msg: QueuedMessage = bincode::deserialize(&bytes)
+                let cfg = crate::config::load();
+                let key = super::at_rest::AtRestKey::load_or_create(&cfg.data_dir)?;
+                let plain = super::at_rest::decrypt(&key, &bytes)
+                    .map_err(|e| super::Error::Serialization(e.to_string()))?;
+                let msg: QueuedMessage = bincode::deserialize(&plain)
                     .map_err(|e| super::Error::Serialization(e.to_string()))?;
                 self.messages.remove(id_bytes)?;
                 self.by_created.remove(k)?;
@@ -105,32 +113,37 @@ impl MessageQueue {
 
     pub fn update_status(&self, message_id: Uuid, status: MessageStatus) -> Result<(), super::Error> {
         let id_bytes = message_id.as_bytes();
-        if let Some(mut message_bytes) = self.messages.get(id_bytes)? {
+        if let Some(cipher) = self.messages.get(id_bytes)? {
+            let cfg = crate::config::load();
+            let key = super::at_rest::AtRestKey::load_or_create(&cfg.data_dir)?;
+            let message_bytes = super::at_rest::decrypt(&key, &cipher)
+                .map_err(|e| super::Error::Serialization(e.to_string()))?;
             let mut message: QueuedMessage = bincode::deserialize(&message_bytes)
                 .map_err(|e| super::Error::Serialization(e.to_string()))?;
             message.status = status;
-            message_bytes = IVec::from(
-                bincode::serialize(&message)
-                    .map_err(|e| super::Error::Serialization(e.to_string()))?
-            );
-            self.messages.insert(id_bytes, message_bytes)?;
+            let serialized = bincode::serialize(&message)
+                .map_err(|e| super::Error::Serialization(e.to_string()))?;
+            let sealed = super::at_rest::encrypt(&key, &serialized)?;
+            self.messages.insert(id_bytes, sealed)?;
         }
         Ok(())
     }
 
     pub fn get_pending_messages(&self) -> Result<Vec<QueuedMessage>, super::Error> {
-        self.messages
-            .iter()
-            .filter_map(|item| item.ok())
-            .filter(|(_, v)| {
-                if let Ok(msg) = bincode::deserialize::<QueuedMessage>(v) {
-                    matches!(msg.status, MessageStatus::Pending)
-                } else {
-                    false
-                }
-            })
-            .map(|(_, v)| bincode::deserialize::<QueuedMessage>(&v).map_err(|e| super::Error::Serialization(e.to_string())))
-            .collect()
+        let cfg = crate::config::load();
+        let key = super::at_rest::AtRestKey::load_or_create(&cfg.data_dir)?;
+        let mut out = Vec::new();
+        for item in self.messages.iter() {
+            let (_k, v) = item?;
+            let pt = super::at_rest::decrypt(&key, &v)
+                .map_err(|e| super::Error::Serialization(e.to_string()))?;
+            let msg: QueuedMessage = bincode::deserialize(&pt)
+                .map_err(|e| super::Error::Serialization(e.to_string()))?;
+            if matches!(msg.status, MessageStatus::Pending) {
+                out.push(msg);
+            }
+        }
+        Ok(out)
     }
 
     pub fn len(&self) -> usize {
@@ -142,13 +155,20 @@ impl MessageQueue {
     }
 
     pub fn store_inbox(&self, message_id: Uuid, plaintext: Vec<u8>) -> Result<(), super::Error> {
-        self.inbox.insert(message_id.as_bytes(), plaintext)?;
+        let cfg = crate::config::load();
+        let key = super::at_rest::AtRestKey::load_or_create(&cfg.data_dir)?;
+        let sealed = super::at_rest::encrypt(&key, &plaintext)?;
+        self.inbox.insert(message_id.as_bytes(), sealed)?;
         Ok(())
     }
 
     pub fn get_inbox(&self, message_id: Uuid) -> Result<Option<Vec<u8>>, super::Error> {
         if let Some(v) = self.inbox.get(message_id.as_bytes())? {
-            Ok(Some(v.to_vec()))
+            let cfg = crate::config::load();
+            let key = super::at_rest::AtRestKey::load_or_create(&cfg.data_dir)?;
+            let pt = super::at_rest::decrypt(&key, &v)
+                .map_err(|e| super::Error::Serialization(e.to_string()))?;
+            Ok(Some(pt))
         } else {
             Ok(None)
         }
@@ -159,16 +179,19 @@ impl MessageQueue {
     }
 
     pub fn list_inbox(&self) -> Result<Vec<(Uuid, Vec<u8>)>, super::Error> {
-        self.inbox
-            .iter()
-            .filter_map(|item| item.ok())
-            .map(|(k, v)| {
-                let mut id_bytes = [0u8; 16];
-                id_bytes.copy_from_slice(&k);
-                let id = Uuid::from_bytes(id_bytes);
-                Ok((id, v.to_vec()))
-            })
-            .collect()
+        let cfg = crate::config::load();
+        let key = super::at_rest::AtRestKey::load_or_create(&cfg.data_dir)?;
+        let mut out = Vec::new();
+        for item in self.inbox.iter() {
+            let (k, v) = item?;
+            let mut id_bytes = [0u8; 16];
+            id_bytes.copy_from_slice(&k);
+            let id = Uuid::from_bytes(id_bytes);
+            let pt = super::at_rest::decrypt(&key, &v)
+                .map_err(|e| super::Error::Serialization(e.to_string()))?;
+            out.push((id, pt));
+        }
+        Ok(out)
     }
 
     pub fn requeue_with_backoff(&self, mut message: QueuedMessage, base_backoff_secs: u64) -> Result<(), super::Error> {
@@ -200,9 +223,12 @@ impl MessageQueue {
             attempts: message.retry_count,
             last_error: reason.to_string(),
         };
+        let cfg = crate::config::load();
+        let key = super::at_rest::AtRestKey::load_or_create(&cfg.data_dir)?;
         let bytes = bincode::serialize(&record)
             .map_err(|e| super::Error::Serialization(e.to_string()))?;
-        self.dead_letter.insert(record.id.as_bytes(), bytes)?;
+        let sealed = super::at_rest::encrypt(&key, &bytes)?;
+        self.dead_letter.insert(record.id.as_bytes(), sealed)?;
         Ok(())
     }
 
@@ -224,7 +250,13 @@ impl MessageQueue {
         self.dead_letter
             .iter()
             .filter_map(|item| item.ok())
-            .map(|(_, v)| bincode::deserialize::<DeadLetterRecord>(&v).map_err(|e| super::Error::Serialization(e.to_string())))
+            .map(|(_, v)| {
+                let cfg = crate::config::load();
+                let key = super::at_rest::AtRestKey::load_or_create(&cfg.data_dir)?;
+                let pt = super::at_rest::decrypt(&key, &v)
+                    .map_err(|e| super::Error::Serialization(e.to_string()))?;
+                bincode::deserialize::<DeadLetterRecord>(&pt).map_err(|e| super::Error::Serialization(e.to_string()))
+            })
             .collect()
     }
 }

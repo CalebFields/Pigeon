@@ -55,5 +55,3 @@
 - [x] Persistent queue survives restart and drains on reconnection
 - [x] CI green with fmt + clippy
 - [x] Basic ping works and is configurable
-
-

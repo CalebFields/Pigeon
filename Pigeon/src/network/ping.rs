@@ -1,6 +1,6 @@
 use libp2p::{
     identity,
-    swarm::{SwarmEvent, SwarmBuilder},
+    swarm::{SwarmEvent},
     Multiaddr, PeerId, Swarm, Transport,
 };
 use libp2p::ping;
@@ -8,6 +8,7 @@ use std::time::Duration;
 
 pub struct NetworkManager {
     swarm: Swarm<ping::Behaviour>,
+    #[allow(dead_code)]
     local_key: identity::Keypair,
 }
 
@@ -23,7 +24,7 @@ impl NetworkManager {
         let behaviour = ping::Behaviour::default();
         let peer_id = PeerId::from(local_key.public());
 
-        let swarm = SwarmBuilder::with_tokio_executor(transport, behaviour, peer_id).build();
+        let swarm = libp2p::Swarm::new(transport, behaviour, peer_id, libp2p::swarm::Config::with_tokio_executor());
 
         Ok(Self {
             swarm,

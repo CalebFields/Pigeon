@@ -48,5 +48,3 @@
 ---
 Notes:
 - Changes to the above require an explicit decision and milestone reset if disruptive.
-
-

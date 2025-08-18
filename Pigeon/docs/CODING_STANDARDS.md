@@ -59,5 +59,3 @@ This document captures the initial coding standards for the Pigeon Rust project.
 ## Commit Discipline
 - Conventional commits recommended (`feat:`, `fix:`, `docs:`, etc.)
 - Small, focused PRs with clear rationale
-
-
