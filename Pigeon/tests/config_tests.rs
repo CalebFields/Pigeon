@@ -1,12 +1,16 @@
-use std::{env, path::PathBuf};
 use serial_test::serial;
+use std::{env, path::PathBuf};
 
 #[test]
 #[serial]
 fn loads_default_when_no_file() {
     let cfg = secure_p2p_msg::config::load();
     // Accept either system data dir/pigeon or fallback .\pigeon
-    let tail = cfg.data_dir.file_name().and_then(|s| s.to_str()).unwrap_or("");
+    let tail = cfg
+        .data_dir
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("");
     assert_eq!(tail, "pigeon");
     assert_eq!(cfg.log_level, "info");
 }
@@ -25,5 +29,3 @@ fn env_overrides_apply() {
     env::remove_var("PIGEON_DATA_DIR");
     env::remove_var("PIGEON_LOG_LEVEL");
 }
-
-

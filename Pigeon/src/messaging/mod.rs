@@ -1,9 +1,7 @@
 pub mod compose;
-pub mod send;
+pub mod message;
 pub mod queue;
 pub mod receive;
-pub mod message;
+pub mod send;
 #[cfg(feature = "network")]
 pub mod send_loop;
-
-

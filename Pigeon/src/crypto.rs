@@ -1,6 +1,6 @@
-use sodiumoxide::crypto::box_;
-use blake2::digest::{KeyInit, Mac};
 use blake2::digest::consts::U32;
+use blake2::digest::{KeyInit, Mac};
+use sodiumoxide::crypto::box_;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -34,8 +34,8 @@ impl KeyPair {
 pub fn derive_auth_token(local_secret: &[u8], remote_pubkey: &[u8]) -> [u8; 16] {
     use blake2::Blake2bMac;
     // 32-byte MAC, then truncate to 16 bytes for token
-    let mut mac: Blake2bMac<U32> = <Blake2bMac<U32> as KeyInit>::new_from_slice(local_secret)
-        .expect("Valid key size");
+    let mut mac: Blake2bMac<U32> =
+        <Blake2bMac<U32> as KeyInit>::new_from_slice(local_secret).expect("Valid key size");
     mac.update(remote_pubkey);
     let result = mac.finalize();
     let mut token = [0u8; 16];
@@ -63,10 +63,10 @@ pub fn decrypt_message(
     if ciphertext.len() < box_::NONCEBYTES {
         return Err(Error::Decryption("Ciphertext too short".into()));
     }
-    
+
     let nonce = box_::Nonce::from_slice(&ciphertext[..box_::NONCEBYTES])
         .ok_or_else(|| Error::Decryption("Invalid nonce".into()))?;
-    
+
     box_::open(
         &ciphertext[box_::NONCEBYTES..],
         &nonce,

@@ -18,5 +18,3 @@ fn auth_token_deterministic() {
     let t2 = secure_p2p_msg::crypto::derive_auth_token(&sk, &pk);
     assert_eq!(t1, t2);
 }
-
-

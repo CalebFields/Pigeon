@@ -1,4 +1,4 @@
-use secure_p2p_msg::storage::queue::{MessageQueue, QueuedMessage, MessageStatus};
+use secure_p2p_msg::storage::queue::{MessageQueue, MessageStatus, QueuedMessage};
 use uuid::Uuid;
 
 #[test]
@@ -44,5 +44,3 @@ fn exponential_backoff_and_dead_letter() {
     // Since retry_count >= max_retries, it should be placed into DLQ
     assert_eq!(q.dead_letter_len(), 1);
 }
-
-

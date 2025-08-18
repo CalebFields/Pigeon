@@ -5,13 +5,15 @@ use std::path::Path;
 pub struct Contact {
     pub id: u64,
     pub name: String,
-    pub addr: String, // multiaddr string
+    pub addr: String,        // multiaddr string
     pub public_key: Vec<u8>, // 32 bytes (sodium box public key)
-    pub ping_interval: u64, // in seconds
+    pub ping_interval: u64,  // in seconds
 }
 
 #[allow(dead_code)]
-pub struct ContactStore { db: sled::Db }
+pub struct ContactStore {
+    db: sled::Db,
+}
 
 #[allow(dead_code)]
 impl ContactStore {
@@ -23,19 +25,28 @@ impl ContactStore {
         Ok(Self { db })
     }
 
-    pub fn add(&self, name: &str, addr: &str, public_key_hex: &str) -> Result<Contact, super::Error> {
+    pub fn add(
+        &self,
+        name: &str,
+        addr: &str,
+        public_key_hex: &str,
+    ) -> Result<Contact, super::Error> {
         // Validate inputs
         let name = name.trim();
         if name.is_empty() {
             return Err(super::Error::Validation("name cannot be empty".into()));
         }
         if !addr.trim_start().starts_with('/') {
-            return Err(super::Error::Validation("addr must be a multiaddr starting with '/'".into()));
+            return Err(super::Error::Validation(
+                "addr must be a multiaddr starting with '/'".into(),
+            ));
         }
         let public_key = hex::decode(public_key_hex)
             .map_err(|e| super::Error::Validation(format!("invalid pubkey hex: {e}")))?;
         if public_key.len() != 32 {
-            return Err(super::Error::Validation("pubkey must be 32 bytes (64 hex chars)".into()));
+            return Err(super::Error::Validation(
+                "pubkey must be 32 bytes (64 hex chars)".into(),
+            ));
         }
 
         let id = self.db.generate_id()?;
@@ -50,8 +61,8 @@ impl ContactStore {
         // encrypt-at-rest
         let cfg = crate::config::load();
         let rest_key = super::at_rest::AtRestKey::load_or_create(&cfg.data_dir)?;
-        let serialized = bincode::serialize(&contact)
-            .map_err(|e| super::Error::Serialization(e.to_string()))?;
+        let serialized =
+            bincode::serialize(&contact).map_err(|e| super::Error::Serialization(e.to_string()))?;
         let sealed = super::at_rest::encrypt(&rest_key, &serialized)?;
         self.db.insert(key_bytes, sealed)?;
         Ok(contact)

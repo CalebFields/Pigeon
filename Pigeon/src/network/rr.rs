@@ -1,5 +1,5 @@
-use libp2p::request_response as rr;
 use futures::prelude::*;
+use libp2p::request_response as rr;
 
 #[derive(Clone, Debug, Default)]
 pub struct PigeonCodec;
@@ -10,7 +10,11 @@ impl rr::Codec for PigeonCodec {
     type Request = Vec<u8>;
     type Response = Vec<u8>;
 
-    async fn read_request<T>(&mut self, _p: &Self::Protocol, io: &mut T) -> std::io::Result<Self::Request>
+    async fn read_request<T>(
+        &mut self,
+        _p: &Self::Protocol,
+        io: &mut T,
+    ) -> std::io::Result<Self::Request>
     where
         T: AsyncRead + Unpin + Send,
     {
@@ -22,7 +26,12 @@ impl rr::Codec for PigeonCodec {
         Ok(buf)
     }
 
-    async fn write_request<T>(&mut self, _p: &Self::Protocol, io: &mut T, req: Self::Request) -> std::io::Result<()>
+    async fn write_request<T>(
+        &mut self,
+        _p: &Self::Protocol,
+        io: &mut T,
+        req: Self::Request,
+    ) -> std::io::Result<()>
     where
         T: AsyncWrite + Unpin + Send,
     {
@@ -32,7 +41,11 @@ impl rr::Codec for PigeonCodec {
         io.flush().await
     }
 
-    async fn read_response<T>(&mut self, _p: &Self::Protocol, io: &mut T) -> std::io::Result<Self::Response>
+    async fn read_response<T>(
+        &mut self,
+        _p: &Self::Protocol,
+        io: &mut T,
+    ) -> std::io::Result<Self::Response>
     where
         T: AsyncRead + Unpin + Send,
     {
@@ -44,7 +57,12 @@ impl rr::Codec for PigeonCodec {
         Ok(buf)
     }
 
-    async fn write_response<T>(&mut self, _p: &Self::Protocol, io: &mut T, resp: Self::Response) -> std::io::Result<()>
+    async fn write_response<T>(
+        &mut self,
+        _p: &Self::Protocol,
+        io: &mut T,
+        resp: Self::Response,
+    ) -> std::io::Result<()>
     where
         T: AsyncWrite + Unpin + Send,
     {
@@ -58,4 +76,3 @@ impl rr::Codec for PigeonCodec {
 pub type Behaviour = rr::Behaviour<PigeonCodec>;
 pub type Event = rr::Event<Vec<u8>, Vec<u8>>;
 pub type Message = rr::Message<Vec<u8>, Vec<u8>>;
-

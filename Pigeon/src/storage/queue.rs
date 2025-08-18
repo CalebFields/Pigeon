@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use sled::Tree;
-use uuid::Uuid;
 use std::time::{SystemTime, UNIX_EPOCH};
+use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct QueuedMessage {
@@ -38,7 +38,8 @@ pub struct DeadLetterRecord {
 pub struct MessageQueue {
     db: sled::Db,
     messages: Tree,
-    by_created: Tree,
+    by_due_p0: Tree, // high/urgent
+    by_due_p1: Tree, // normal/bulk (default)
     inbox: Tree,
     dead_letter: Tree,
 }
@@ -48,10 +49,18 @@ impl MessageQueue {
     pub fn new(path: &str) -> Result<Self, super::Error> {
         let db = sled::open(path)?;
         let messages = db.open_tree("messages")?;
-        let by_created = db.open_tree("index_by_created")?;
+        let by_due_p0 = db.open_tree("index_by_due_p0")?;
+        let by_due_p1 = db.open_tree("index_by_due_p1")?;
         let inbox = db.open_tree("inbox")?;
         let dead_letter = db.open_tree("dead_letter")?;
-        Ok(Self { db, messages, by_created, inbox, dead_letter })
+        Ok(Self {
+            db,
+            messages,
+            by_due_p0,
+            by_due_p1,
+            inbox,
+            dead_letter,
+        })
     }
 
     pub fn enqueue(&self, mut message: QueuedMessage) -> Result<(), super::Error> {
@@ -68,20 +77,27 @@ impl MessageQueue {
         // encrypt-at-rest
         let cfg = crate::config::load();
         let key = super::at_rest::AtRestKey::load_or_create(&cfg.data_dir)?;
-        let message_bytes = bincode::serialize(&message)
-            .map_err(|e| super::Error::Serialization(e.to_string()))?;
+        let message_bytes =
+            bincode::serialize(&message).map_err(|e| super::Error::Serialization(e.to_string()))?;
         let sealed = super::at_rest::encrypt(&key, &message_bytes)?;
         self.messages.insert(id_bytes, sealed)?;
-        // Index by next_attempt_at to support exponential backoff scheduling
+        // Index by next_attempt_at per priority lane
         let mut key = Vec::with_capacity(8 + id_bytes.len());
         key.extend_from_slice(&message.next_attempt_at.to_be_bytes());
         key.extend_from_slice(id_bytes);
-        self.by_created.insert(key, id_bytes)?;
+        match message.priority {
+            0 => {
+                self.by_due_p0.insert(key, id_bytes)?;
+            }
+            _ => {
+                self.by_due_p1.insert(key, id_bytes)?;
+            }
+        }
         Ok(())
     }
 
-    pub fn dequeue(&self) -> Result<Option<QueuedMessage>, super::Error> {
-        if let Some(Ok((k, v))) = self.by_created.iter().next() {
+    fn dequeue_from_tree(&self, tree: &Tree) -> Result<Option<QueuedMessage>, super::Error> {
+        if let Some(Ok((k, v))) = tree.iter().next() {
             // Only dequeue if the message is due (next_attempt_at <= now)
             if k.len() >= 8 {
                 let mut ts_bytes = [0u8; 8];
@@ -104,14 +120,36 @@ impl MessageQueue {
                 let msg: QueuedMessage = bincode::deserialize(&plain)
                     .map_err(|e| super::Error::Serialization(e.to_string()))?;
                 self.messages.remove(id_bytes)?;
-                self.by_created.remove(k)?;
+                tree.remove(k)?;
                 return Ok(Some(msg));
             }
         }
         Ok(None)
     }
 
-    pub fn update_status(&self, message_id: Uuid, status: MessageStatus) -> Result<(), super::Error> {
+    pub fn dequeue_from_priority(
+        &self,
+        priority: u8,
+    ) -> Result<Option<QueuedMessage>, super::Error> {
+        match priority {
+            0 => self.dequeue_from_tree(&self.by_due_p0),
+            _ => self.dequeue_from_tree(&self.by_due_p1),
+        }
+    }
+
+    // Default dequeue: prefer high lane, then normal
+    pub fn dequeue(&self) -> Result<Option<QueuedMessage>, super::Error> {
+        if let Some(msg) = self.dequeue_from_tree(&self.by_due_p0)? {
+            return Ok(Some(msg));
+        }
+        self.dequeue_from_tree(&self.by_due_p1)
+    }
+
+    pub fn update_status(
+        &self,
+        message_id: Uuid,
+        status: MessageStatus,
+    ) -> Result<(), super::Error> {
         let id_bytes = message_id.as_bytes();
         if let Some(cipher) = self.messages.get(id_bytes)? {
             let cfg = crate::config::load();
@@ -147,7 +185,7 @@ impl MessageQueue {
     }
 
     pub fn len(&self) -> usize {
-        self.by_created.len()
+        self.by_due_p0.len() + self.by_due_p1.len()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -194,7 +232,11 @@ impl MessageQueue {
         Ok(out)
     }
 
-    pub fn requeue_with_backoff(&self, mut message: QueuedMessage, base_backoff_secs: u64) -> Result<(), super::Error> {
+    pub fn requeue_with_backoff(
+        &self,
+        mut message: QueuedMessage,
+        base_backoff_secs: u64,
+    ) -> Result<(), super::Error> {
         // Exponential backoff: base * 2^(retry_count)
         message.retry_count = message.retry_count.saturating_add(1);
         let exp = message.retry_count.saturating_sub(1);
@@ -225,14 +267,19 @@ impl MessageQueue {
         };
         let cfg = crate::config::load();
         let key = super::at_rest::AtRestKey::load_or_create(&cfg.data_dir)?;
-        let bytes = bincode::serialize(&record)
-            .map_err(|e| super::Error::Serialization(e.to_string()))?;
+        let bytes =
+            bincode::serialize(&record).map_err(|e| super::Error::Serialization(e.to_string()))?;
         let sealed = super::at_rest::encrypt(&key, &bytes)?;
         self.dead_letter.insert(record.id.as_bytes(), sealed)?;
         Ok(())
     }
 
-    pub fn requeue_or_dead_letter(&self, message: QueuedMessage, base_backoff_secs: u64, reason: &str) -> Result<bool, super::Error> {
+    pub fn requeue_or_dead_letter(
+        &self,
+        message: QueuedMessage,
+        base_backoff_secs: u64,
+        reason: &str,
+    ) -> Result<bool, super::Error> {
         if message.retry_count >= message.max_retries {
             self.dead_letter(message, reason)?;
             Ok(false)
@@ -255,7 +302,8 @@ impl MessageQueue {
                 let key = super::at_rest::AtRestKey::load_or_create(&cfg.data_dir)?;
                 let pt = super::at_rest::decrypt(&key, &v)
                     .map_err(|e| super::Error::Serialization(e.to_string()))?;
-                bincode::deserialize::<DeadLetterRecord>(&pt).map_err(|e| super::Error::Serialization(e.to_string()))
+                bincode::deserialize::<DeadLetterRecord>(&pt)
+                    .map_err(|e| super::Error::Serialization(e.to_string()))
             })
             .collect()
     }

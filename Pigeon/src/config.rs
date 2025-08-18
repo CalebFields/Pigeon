@@ -1,5 +1,5 @@
-use std::{env, fs, path::PathBuf};
 use serde::Deserialize;
+use std::{env, fs, path::PathBuf};
 
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
@@ -84,7 +84,9 @@ struct RootConfig {
 }
 
 #[derive(Deserialize, Debug, Default)]
-struct StorageSection { data_dir: Option<PathBuf> }
+struct StorageSection {
+    data_dir: Option<PathBuf>,
+}
 
 #[derive(Deserialize, Debug, Default)]
 #[allow(dead_code)]
@@ -106,18 +108,32 @@ impl RootConfig {
         let mut cfg = AppConfig::default();
         // storage section or flat
         if let Some(st) = self.storage {
-            if let Some(d) = st.data_dir { cfg.data_dir = d; }
+            if let Some(d) = st.data_dir {
+                cfg.data_dir = d;
+            }
         }
-        if let Some(d) = self.data_dir { cfg.data_dir = d; }
-        if let Some(l) = self.log_level { cfg.log_level = l; }
+        if let Some(d) = self.data_dir {
+            cfg.data_dir = d;
+        }
+        if let Some(l) = self.log_level {
+            cfg.log_level = l;
+        }
         #[cfg(feature = "network")]
         {
             if let Some(net) = self.network {
-                if let Some(a) = net.listen_addr { cfg.listen_addr = Some(a); }
-                if let Some(m) = net.enable_mdns { cfg.enable_mdns = m; }
+                if let Some(a) = net.listen_addr {
+                    cfg.listen_addr = Some(a);
+                }
+                if let Some(m) = net.enable_mdns {
+                    cfg.enable_mdns = m;
+                }
             }
-            if let Some(a) = self.listen_addr { cfg.listen_addr = Some(a); }
-            if let Some(m) = self.enable_mdns { cfg.enable_mdns = m; }
+            if let Some(a) = self.listen_addr {
+                cfg.listen_addr = Some(a);
+            }
+            if let Some(m) = self.enable_mdns {
+                cfg.enable_mdns = m;
+            }
         }
         cfg
     }
@@ -133,7 +149,9 @@ fn ensure_default_file() {
     let base = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
     let dir = base.join("pigeon");
     let path = dir.join("config.toml");
-    if path.exists() { return; }
+    if path.exists() {
+        return;
+    }
     let _ = fs::create_dir_all(&dir);
     let data_dir = default_data_dir();
     let tmpl = format!(
@@ -142,5 +160,3 @@ fn ensure_default_file() {
     );
     let _ = fs::write(path, tmpl);
 }
-
-

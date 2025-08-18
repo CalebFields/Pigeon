@@ -37,8 +37,8 @@
   - Acceptance: Coverage report published; no flaky tests on main
 
 ### Exit Criteria (M1)
-- [ ] Send/receive encrypted envelopes between two peers by name (via contacts)
-- [ ] Queue drains reliably under intermittent connectivity
-- [ ] Configurable listen/dial and basic discovery on LAN
-- [ ] Encrypted-at-rest storage for messages and contacts
-- [ ] Usable CLI with helpful commands and docs
+- [x] Send/receive encrypted envelopes between two peers by name (via contacts)
+- [x] Queue drains reliably under intermittent connectivity
+- [x] Configurable listen/dial and basic discovery on LAN
+- [x] Encrypted-at-rest storage for messages and contacts
+- [x] Usable CLI with helpful commands and docs

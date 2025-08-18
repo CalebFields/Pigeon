@@ -1,6 +1,6 @@
+use crate::crypto;
 use crate::storage::queue::MessageQueue;
 use sodiumoxide::crypto::box_::{PublicKey, SecretKey};
-use crate::crypto;
 
 #[allow(dead_code)]
 pub async fn receive_and_ack(
@@ -12,10 +12,9 @@ pub async fn receive_and_ack(
     if let Some(msg) = q.dequeue().map_err(crate::error::Error::Storage)? {
         let plaintext = crypto::decrypt_message(&msg.payload, sender_pk, receiver_sk)
             .map_err(crate::error::Error::Crypto)?;
-        q.store_inbox(msg.id, plaintext).map_err(crate::error::Error::Storage)?;
+        q.store_inbox(msg.id, plaintext)
+            .map_err(crate::error::Error::Storage)?;
         // Do not re-enqueue delivered messages; queue should drain on successful receive
     }
     Ok(())
 }
-
-

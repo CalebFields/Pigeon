@@ -40,6 +40,24 @@ jobs:
       - name: Clippy (deny warnings)
         run: cargo clippy --all-targets -- -D warnings
 
+      - name: Rustfmt check
+        run: rustup component add rustfmt && cargo fmt --all -- --check
+
+      - name: cargo-audit (advisories)
+        if: runner.os == 'Linux'
+        run: |
+          cargo install cargo-audit --locked
+          cargo audit --db ~/.cargo/advisory-db
+
+      - name: cargo-deny (licenses, bans)
+        if: runner.os == 'Linux'
+        run: |
+          cargo install cargo-deny --locked
+          cargo deny check -W warnings || true
+
+      - name: Build docs
+        run: cargo doc --no-deps
+
       - name: Run tests (capture log)
         shell: bash
         run: |

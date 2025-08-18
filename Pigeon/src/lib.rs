@@ -1,11 +1,10 @@
+pub mod config;
 pub mod crypto;
 pub mod error;
+pub mod identity;
+pub mod messaging;
 #[cfg(feature = "network")]
 pub mod network;
+pub mod ops;
 pub mod storage;
 pub mod ui;
-pub mod config;
-pub mod messaging;
-pub mod identity;
-
-

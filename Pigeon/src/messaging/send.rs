@@ -29,5 +29,3 @@ pub async fn send_now(
     q.enqueue(msg).map_err(crate::error::Error::Storage)?;
     Ok(id)
 }
-
-

@@ -20,11 +20,14 @@ impl NonceStore {
         if self.tree.contains_key(&key).map_err(super::Error::Db)? {
             return Ok(false);
         }
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
         let ts = now.to_be_bytes();
-        self.tree.insert(key, ts.as_slice()).map_err(super::Error::Db)?;
+        self.tree
+            .insert(key, ts.as_slice())
+            .map_err(super::Error::Db)?;
         Ok(true)
     }
 }
-
-

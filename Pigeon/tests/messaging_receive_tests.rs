@@ -1,4 +1,4 @@
-use secure_p2p_msg::messaging::{send::send_now, receive::receive_and_ack};
+use secure_p2p_msg::messaging::{receive::receive_and_ack, send::send_now};
 use secure_p2p_msg::storage::queue::MessageQueue;
 
 #[tokio::test]
@@ -10,7 +10,9 @@ async fn receive_decrypts_and_stores_inbox() {
     let dir = tempfile::tempdir().unwrap();
     let queue_path = dir.path().to_str().unwrap();
 
-    let _id = send_now(queue_path, &sk_a, &pk_b, 42, b"secret").await.unwrap();
+    let _id = send_now(queue_path, &sk_a, &pk_b, 42, b"secret")
+        .await
+        .unwrap();
     receive_and_ack(queue_path, &pk_a, &sk_b).await.unwrap();
 
     // Check inbox stored
@@ -20,5 +22,3 @@ async fn receive_decrypts_and_stores_inbox() {
     // Queue should be empty after successful receive (drained)
     assert!(q.is_empty());
 }
-
-

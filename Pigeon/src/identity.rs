@@ -34,9 +34,11 @@ impl Identity {
         fs::create_dir_all(data_dir).map_err(|e| crate::error::Error::Config(e.to_string()))?;
         let path = data_dir.join("identity.bin");
         if path.exists() {
-            let mut f = fs::File::open(&path).map_err(|e| crate::error::Error::Config(e.to_string()))?;
+            let mut f =
+                fs::File::open(&path).map_err(|e| crate::error::Error::Config(e.to_string()))?;
             let mut buf = Vec::new();
-            f.read_to_end(&mut buf).map_err(|e| crate::error::Error::Config(e.to_string()))?;
+            f.read_to_end(&mut buf)
+                .map_err(|e| crate::error::Error::Config(e.to_string()))?;
             let stored: StoredIdentity = bincode::deserialize(&buf)
                 .map_err(|e| crate::error::Error::Config(e.to_string()))?;
 
@@ -53,10 +55,12 @@ impl Identity {
                 }
             };
 
-            let sodium_box_pk = sodiumoxide::crypto::box_::PublicKey::from_slice(&stored.sodium_box_pk)
-                .ok_or_else(|| crate::error::Error::Config("invalid sodium pk".to_string()))?;
-            let sodium_box_sk = sodiumoxide::crypto::box_::SecretKey::from_slice(&stored.sodium_box_sk)
-                .ok_or_else(|| crate::error::Error::Config("invalid sodium sk".to_string()))?;
+            let sodium_box_pk =
+                sodiumoxide::crypto::box_::PublicKey::from_slice(&stored.sodium_box_pk)
+                    .ok_or_else(|| crate::error::Error::Config("invalid sodium pk".to_string()))?;
+            let sodium_box_sk =
+                sodiumoxide::crypto::box_::SecretKey::from_slice(&stored.sodium_box_sk)
+                    .ok_or_else(|| crate::error::Error::Config("invalid sodium sk".to_string()))?;
             let sign_pk = sodiumoxide::crypto::sign::PublicKey::from_slice(&stored.sign_pk)
                 .ok_or_else(|| crate::error::Error::Config("invalid sign pk".to_string()))?;
             let sign_sk = sodiumoxide::crypto::sign::SecretKey::from_slice(&stored.sign_sk)
@@ -92,14 +96,16 @@ impl Identity {
             };
             let bytes = bincode::serialize(&stored)
                 .map_err(|e| crate::error::Error::Config(e.to_string()))?;
-            let mut f = fs::File::create(&path).map_err(|e| crate::error::Error::Config(e.to_string()))?;
+            let mut f =
+                fs::File::create(&path).map_err(|e| crate::error::Error::Config(e.to_string()))?;
             // Best-effort restrictive perms
             #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt;
                 let _ = fs::set_permissions(&path, fs::Permissions::from_mode(0o600));
             }
-            f.write_all(&bytes).map_err(|e| crate::error::Error::Config(e.to_string()))?;
+            f.write_all(&bytes)
+                .map_err(|e| crate::error::Error::Config(e.to_string()))?;
             Ok(Self {
                 #[cfg(feature = "network")]
                 libp2p,
@@ -116,5 +122,3 @@ impl Identity {
         base.join("identity.bin")
     }
 }
-
-

@@ -1,12 +1,13 @@
+mod config;
 mod crypto;
 mod error;
+mod identity;
+mod messaging;
 #[cfg(feature = "network")]
 mod network;
+mod ops;
 mod storage;
 mod ui;
-mod config;
-mod messaging;
-mod identity;
 
 use anyhow::Result;
 use clap::Parser;
@@ -18,8 +19,8 @@ async fn main() -> Result<()> {
     sodiumoxide::init().expect("sodium init failed");
     // Ensure identity exists for consistent peer ID and crypto keys
     let cfg = crate::config::load();
-    let _id = crate::identity::Identity::load_or_generate(&cfg.data_dir)
-        .expect("identity load/generate");
+    let _id =
+        crate::identity::Identity::load_or_generate(&cfg.data_dir).expect("identity load/generate");
     let cli = Cli::parse();
     cli.execute().await?;
     Ok(())
