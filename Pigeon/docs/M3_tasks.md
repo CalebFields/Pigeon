@@ -1,46 +1,66 @@
-## Milestone M3 — Hardening, Multi-Message, and UX Polish
+## M3 – GUI Implementation
 
-Scope: Focus on production hardening, multi-message capabilities, improved UX, and operational polish. Build on M2 by adding batching, attachments, richer inbox actions, stronger key lifecycle management, and end-to-end demo scripts.
+### Epic: App Shell & Architecture
+- [ ] M3-400: Choose framework and scaffold (Tauri + React/TypeScript, or egui native)
+  - Acceptance: Hello-world window, build scripts, and IPC bridge to Rust core; CI builds app
+- [ ] M3-401: IPC layer and API surface to core (queue, contacts, inbox, send/listen)
+  - Acceptance: Typed requests/responses; errors mapped; versioned IPC contract documented
 
-### Epics and Tasks
+### Epic: Onboarding & Identity
+- [ ] M3-410: First-run wizard (data directory, passphrase, identity generate/import)
+  - Acceptance: Wizard completes and persists choices; identity preview screen works
+- [ ] M3-411: Unlock flow (Argon2id) with retry/lockout and optional env unlock
+  - Acceptance: Locked state blocks sensitive actions; unlock transitions the app without restart
 
-- Reliability & Throughput
-  - M3-300: Batch send in `send_loop` (coalesce due messages, single session/multiplex)
-  - M3-301: Chunked attachments with integrity (blake2) and reassembly
-  - M3-302: Adaptive backoff caps based on recent success rate
+### Epic: Contacts & Inbox UI
+- [ ] M3-420: Contacts CRUD UI (validate name, multiaddr, pubkey) with search/sort
+  - Acceptance: Add/List/Show/Remove work and reflect backend; validation errors shown inline
+- [ ] M3-421: Inbox list and details (virtualized list, preview pane)
+  - Acceptance: Paginated or virtualized list; `show` view with metadata; export from UI
+- [ ] M3-422: Inbox search (case-insensitive) with highlighting
+  - Acceptance: Matches align with backend; keyboard navigation between results
 
-- Security & Key Management
-  - M3-310: Passphrase rotation workflow with seamless rekey of at-rest data
-  - M3-311: Key backup/restore commands with checksum and dry-run verify
-  - M3-312: Optional message-level forward secrecy (ephemeral X25519 per message)
+### Epic: Messaging UI
+- [ ] M3-430: Compose & send with priority toggle and contact resolution
+  - Acceptance: Send path enqueues and updates status; errors surfaced non-blocking
+- [ ] M3-431: Real-time receive display and desktop notifications
+  - Acceptance: Running listener updates UI; notifications clickable to open message
+- [ ] M3-432: Queue view with retry/backoff visibility and dead-letter browsing
+  - Acceptance: Shows per-message attempts/next_due; dead-letter tab supports export
 
-- Inbox & Search UX
-  - M3-320: Inbox labels and simple rules (e.g., sender → label)
-  - M3-321: Full-text search index (minimal tokenizer) with AND/OR filters
-  - M3-322: `inbox redact <id>` (scrub body, keep envelope metadata)
+### Epic: Settings & Network
+- [ ] M3-440: Network settings (listen address, mDNS, backoff/retries) with validation
+  - Acceptance: Apply without restart when possible; otherwise prompts; persisted to config
+- [ ] M3-441: Security settings (passphrase, rotation, unlock on startup)
+  - Acceptance: Rotate at-rest key workflow; unlock prompts integrated with wizard
 
-- Networking & Discovery
-  - M3-330: Bootstrap peer list + auto-dial on startup (feature-gated)
-  - M3-331: NAT hole punching experiment (if supported by libp2p version)
-  - M3-332: Peer health cache and prefer-healthy dialing
+### Epic: Observability
+- [ ] M3-450: Metrics dashboard (consume /metrics; render counters/graphs)
+  - Acceptance: Sent/Delivered/Failed/Received update live; queue depth visible
+- [ ] M3-451: Log viewer with level filters and tailing
+  - Acceptance: Follows logs; level switches apply immediately; copy-to-clipboard works
 
-- Observability & Ops
-  - M3-340: Histograms for send latencies and retry counts
-  - M3-341: Structured logs option (`--log-format json`)
-  - M3-342: `ops check` to validate config, keys, and permissions
+### Epic: Packaging & Updates
+- [ ] M3-460: Installers for Windows/macOS/Linux (Tauri bundler or platform tools)
+  - Acceptance: MSI/PKG/DEB/RPM artifacts from CI; code-signing where applicable
+- [ ] M3-461: Auto-update (if supported) with release channel selection
+  - Acceptance: Checks for updates; verifies signatures; prompts before apply
 
-- CLI & DX Polish
-  - M3-350: `pigeon demo local-two-peers` script (spin up listener + sender)
-  - M3-351: Shell completions generation for common shells
-  - M3-352: `--yes` non-interactive for all destructive ops
+### Epic: Accessibility & Internationalization
+- [ ] M3-470: Accessibility pass (keyboard navigation, screen-reader labels)
+  - Acceptance: Navigable without mouse; key controls documented; basic ARIA where applicable
+- [ ] M3-471: i18n scaffolding and translations (en-US + one additional locale)
+  - Acceptance: Language switch persists; core screens translated
 
-### Exit Criteria
+### Epic: QA & CI for GUI
+- [ ] M3-480: GUI smoke tests and automation (tauri-driver/playwright)
+  - Acceptance: CI runs headless UI smoke; artifacts (screenshots/logs) on failure
+- [ ] M3-481: End-to-end test harness (two peers via GUI) with flaky guard
+  - Acceptance: Automated send/receive between two app instances passes consistently
 
-- Batch send implemented and covered by tests (unit + integration).
-- Attachments up to 10 MB supported with chunking, verified by tests.
-- Passphrase rotation rekeys data; cold restore works; tests included.
-- Inbox labels and redact command available and tested.
-- Metrics extended with histograms; `/metrics` reflects new series.
-- Demo script runs end-to-end locally; README documents usage.
-
-
+### Exit Criteria (M3)
+- [ ] Users can install a desktop app and complete onboarding
+- [ ] Contacts, inbox, search, and compose/send are fully functional via GUI
+- [ ] Live receive, notifications, and queue monitoring work reliably
+- [ ] Core security options (passphrase, unlock, rotation) are accessible and tested
+- [ ] CI produces installers and runs GUI smoke tests on all platforms
