@@ -1,12 +1,13 @@
 use eframe::egui;
-use notify_rust::Notification;
-use secure_p2p_msg::api::InboxWatcher;
+ 
+ 
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Tab {
     Inbox,
     Compose,
     Contacts,
+    MyAddress,
 }
 
 enum Mode {
@@ -32,6 +33,9 @@ struct App {
     new_contact_name: String,
     new_contact_addr: String,
     new_contact_pubhex: String,
+    // My Address (computed on load)
+    my_addr: String,
+    my_id: String,
 }
 
 impl Default for App {
@@ -47,6 +51,30 @@ impl Default for App {
             Vec::new()
         };
         let contacts = core.contacts_list().unwrap_or_default();
+        // Precompute My Address and ID before moving `core`
+        #[cfg(feature = "network")]
+        let (my_addr, my_id) = {
+            let preview = core.ensure_identity_and_preview().ok();
+            let peer = preview
+                .as_ref()
+                .map(|p| p.libp2p_peer_id.clone())
+                .unwrap_or_default();
+            let net = core.get_network_settings();
+            let listen = net
+                .listen_addr
+                .unwrap_or_else(|| "/ip4/0.0.0.0/tcp/0".to_string());
+            let addr = if peer.is_empty() {
+                listen.clone()
+            } else {
+                format!("{}/p2p/{}", listen, peer)
+            };
+            (addr, if peer.is_empty() { "".to_string() } else { peer })
+        };
+        #[cfg(not(feature = "network"))]
+        let (my_addr, my_id) = (
+            "network feature disabled".to_string(),
+            "network feature disabled".to_string(),
+        );
         Self {
             core,
             inbox,
@@ -62,6 +90,8 @@ impl Default for App {
             new_contact_name: String::new(),
             new_contact_addr: String::new(),
             new_contact_pubhex: String::new(),
+            my_addr,
+            my_id,
         }
     }
 }
@@ -111,6 +141,7 @@ impl eframe::App for App {
                         ui.selectable_value(&mut self.active, Tab::Inbox, "Inbox");
                         ui.selectable_value(&mut self.active, Tab::Compose, "Compose");
                         ui.selectable_value(&mut self.active, Tab::Contacts, "Contacts");
+                        ui.selectable_value(&mut self.active, Tab::MyAddress, "My Address");
                     });
                 });
                 egui::CentralPanel::default().show(ctx, |ui| match self.active {
@@ -228,6 +259,25 @@ impl eframe::App for App {
                             }
                         }
                         if !self.status.is_empty() { ui.label(&self.status); }
+                    }
+                    Tab::MyAddress => {
+                        ui.heading("Your ID and dialable address");
+                        ui.horizontal(|ui| {
+                            ui.label("Your ID:");
+                            ui.text_edit_singleline(&mut self.my_id);
+                            if ui.button("Copy").clicked() {
+                                ui.output_mut(|o| o.copied_text = self.my_id.clone());
+                            }
+                        });
+                        ui.separator();
+                        ui.label("Your dialable address:");
+                        ui.horizontal(|ui| {
+                            ui.text_edit_singleline(&mut self.my_addr);
+                            if ui.button("Copy").clicked() {
+                                ui.output_mut(|o| o.copied_text = self.my_addr.clone());
+                            }
+                        });
+                        ui.label("Share this with peers so they can connect to you.");
                     }
                 });
             }

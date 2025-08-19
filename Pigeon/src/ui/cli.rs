@@ -692,8 +692,8 @@ impl Cli {
                                 ) => {
                                     match message {
                                         libp2p::request_response::Message::<Vec<u8>, Vec<u8>>::Request { request, channel, .. } => {
-                                            // Try decode as EnvelopeV1
-                                            if let Ok(env) = bincode::deserialize::<crate::messaging::message::EnvelopeV1>(&request) {
+                                            // Try decode as EnvelopeV1 and compute a single response
+                                            let response = if let Ok(env) = bincode::deserialize::<crate::messaging::message::EnvelopeV1>(&request) {
                                                 // verify signature
                                                 let mut to_verify = Vec::new();
                                                 to_verify.push(env.version);
@@ -701,52 +701,55 @@ impl Cli {
                                                 to_verify.extend_from_slice(&env.recipient_id.to_be_bytes());
                                                 to_verify.extend_from_slice(&env.nonce);
                                                 to_verify.extend_from_slice(&env.payload);
-                                                let sig = match ed25519::Signature::from_bytes(&env.signature) {
-                                                    Ok(s) => s,
-                                                    Err(_) => { println!("received: <invalid signature>"); let _ = swarm.behaviour_mut().request_response.send_response(channel, b"NACK".to_vec()); continue; }
-                                                };
-                                                // sender signing key currently not in envelope; accept self for demo
-                                                let sender_sign_pk = &id.sign_pk;
-                                                // Convert sodiumoxide PublicKey to ed25519::VerifyingKey bytes
-                                                let vk = match ed25519::VerifyingKey::from_bytes(&sender_sign_pk.0) {
-                                                    Ok(v) => v,
-                                                    Err(_) => { println!("received: <invalid verify key>"); let _ = swarm.behaviour_mut().request_response.send_response(channel, b"NACK".to_vec()); continue; }
-                                                };
-                                                if vk.verify(&to_verify, &sig).is_ok() {
-                                                    // replay protection via nonce store
-                                                    let db = sled::open(crate::config::load().data_dir.join("queue_db")).map_err(|e| crate::error::Error::Storage(crate::storage::Error::Db(e)))?;
-                                                    let ns = crate::storage::nonce_store::NonceStore::open(&db).map_err(crate::error::Error::Storage)?;
-                                                    if ns.insert_if_fresh(env.sender_id, &env.nonce).map_err(crate::error::Error::Storage)? {
-                                                        // decrypt
-                                                        let nonce = sodiumoxide::crypto::box_::Nonce::from_slice(&env.nonce).unwrap();
-                                                        if let Ok(plaintext) = sodiumoxide::crypto::box_::open(&env.payload, &nonce, &id.sodium_box_pk, &id.sodium_box_sk) {
-                                                            // Store to inbox (best-effort)
-                                                            if let Ok(q) = crate::storage::queue::MessageQueue::new("queue_db") {
-                                                                let _ = q.store_inbox(uuid::Uuid::new_v4(), plaintext.clone());
-                                                            }
-                                                            // Increment received metric (process-local)
-                                                            static METRICS: once_cell::sync::Lazy<crate::ops::Metrics> = once_cell::sync::Lazy::new(Default::default);
-                                                            METRICS.received_messages.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                                                            let txt = String::from_utf8_lossy(&plaintext);
-                                                            println!("received: {}", txt);
-                                                        } else {
-                                                            println!("received: <failed to decrypt>");
-                                                        }
-                                                        let _ = swarm.behaviour_mut().request_response.send_response(channel, b"ACK".to_vec());
-                                                    } else {
-                                                        println!("replay detected (nonce)");
-                                                        let _ = swarm.behaviour_mut().request_response.send_response(channel, b"REPLAY".to_vec());
-                                                    }
+                                                if env.signature.len() != 64 {
+                                                    println!("received: <invalid signature>");
+                                                    b"NACK".to_vec()
                                                 } else {
-                                                    println!("received: <signature verify failed>");
-                                                    let _ = swarm.behaviour_mut().request_response.send_response(channel, b"NACK".to_vec());
+                                                    let mut arr = [0u8; 64];
+                                                    arr.copy_from_slice(&env.signature);
+                                                    let sig = ed25519_dalek::Signature::from_bytes(&arr);
+                                                    if let Ok(vk) = ed25519_dalek::VerifyingKey::from_bytes(&id.sign_pk.0) {
+                                                        if vk.verify_strict(&to_verify, &sig).is_ok() {
+                                                        // replay protection via nonce store
+                                                        let db = sled::open(crate::config::load().data_dir.join("queue_db")).map_err(|e| crate::error::Error::Storage(crate::storage::Error::Db(e)))?;
+                                                        let ns = crate::storage::nonce_store::NonceStore::open(&db).map_err(crate::error::Error::Storage)?;
+                                                        if ns.insert_if_fresh(env.sender_id, &env.nonce).map_err(crate::error::Error::Storage)? {
+                                                            // decrypt
+                                                            let nonce = sodiumoxide::crypto::box_::Nonce::from_slice(&env.nonce).unwrap();
+                                                            if let Ok(plaintext) = sodiumoxide::crypto::box_::open(&env.payload, &nonce, &id.sodium_box_pk, &id.sodium_box_sk) {
+                                                                // Store to inbox (best-effort)
+                                                                if let Ok(q) = crate::storage::queue::MessageQueue::new("queue_db") {
+                                                                    let _ = q.store_inbox(uuid::Uuid::new_v4(), plaintext.clone());
+                                                                }
+                                                                // Increment received metric (process-local)
+                                                                static METRICS: once_cell::sync::Lazy<crate::ops::Metrics> = once_cell::sync::Lazy::new(Default::default);
+                                                                METRICS.received_messages.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                                                                let txt = String::from_utf8_lossy(&plaintext);
+                                                                println!("received: {}", txt);
+                                                            } else {
+                                                                println!("received: <failed to decrypt>");
+                                                            }
+                                                            b"ACK".to_vec()
+                                                        } else {
+                                                            println!("replay detected (nonce)");
+                                                            b"REPLAY".to_vec()
+                                                        }
+                                                        } else {
+                                                            println!("received: <signature verify failed>");
+                                                            b"NACK".to_vec()
+                                                        }
+                                                    } else {
+                                                        println!("received: <invalid verify key>");
+                                                        b"NACK".to_vec()
+                                                    }
                                                 }
                                             } else {
                                                 // Fallback to plain text
                                                 let txt = String::from_utf8_lossy(&request);
                                                 println!("received: {}", txt);
-                                            }
-                                            let _ = swarm.behaviour_mut().request_response.send_response(channel, b"ACK".to_vec());
+                                                b"ACK".to_vec()
+                                            };
+                                            let _ = swarm.behaviour_mut().request_response.send_response(channel, response);
                                         }
                                         libp2p::request_response::Message::<Vec<u8>, Vec<u8>>::Response { .. } => {}
                                     }
