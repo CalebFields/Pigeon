@@ -47,18 +47,18 @@
   - Acceptance: Checks for updates; verifies signatures; prompts before apply
 
 ### Epic: Accessibility
-- [ ] M3-370: Accessibility pass (keyboard navigation, screen-reader labels)
+- [x] M3-370: Accessibility pass (keyboard navigation, screen-reader labels)
   - Acceptance: Navigable without mouse; key controls documented; basic ARIA where applicable
 
 ### Epic: QA & CI for GUI
-- [ ] M3-380: GUI smoke tests and automation (tauri-driver/playwright)
+- [x] M3-380: GUI smoke tests and automation (playwright)
   - Acceptance: CI runs headless UI smoke; artifacts (screenshots/logs) on failure
-- [ ] M3-381: End-to-end test harness (two peers via GUI) with flaky guard
+- [x] M3-381: End-to-end test harness (two peers via GUI) with flaky guard
   - Acceptance: Automated send/receive between two app instances passes consistently
 
 ### Exit Criteria (M3)
-- [ ] Users can install a desktop app and complete onboarding
-- [ ] Contacts, inbox, search, and compose/send are fully functional via GUI
-- [ ] Live receive, notifications, and queue monitoring work reliably
-- [ ] Core security options (passphrase, unlock, rotation) are accessible and tested
-- [ ] CI produces installers and runs GUI smoke tests on all platforms
+- [x] Users can install a desktop app and complete onboarding
+- [x] Contacts, inbox, search, and compose/send are fully functional via GUI
+- [x] Live receive, notifications, and queue monitoring work reliably
+- [x] Core security options (passphrase, unlock, rotation) are accessible and tested
+- [x] CI produces installers and runs GUI smoke tests on all platforms

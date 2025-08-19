@@ -4782,6 +4782,7 @@ dependencies = [
  "blake2",
  "clap",
  "dirs",
+ "ed25519-dalek",
  "eframe",
  "egui",
  "futures",
