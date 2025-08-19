@@ -1,74 +1,65 @@
-# 🕊️ Pigeon: Secure Peer-to-Peer Messaging
+# Pigeon
 
-[![CI](https://img.shields.io/github/actions/workflow/status/yourusername/pigeon/ci.yml?branch=main)](https://github.com/yourusername/pigeon/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-tarpaulin-green)](https://github.com/yourusername/pigeon/actions/workflows/ci.yml)
+Pigeon is a secure, peer‑to‑peer messaging client and library written in Rust, featuring encrypted messaging, a local queue with retries/backoff, and an optional libp2p networking layer with a desktop GUI.
 
-**Pigeon** is a secure, lightweight messaging client that establishes direct encrypted connections between users. Designed with privacy and security at its core, Pigeon provides robust end-to-end encryption without the need for centralized servers—ensuring that your communications remain confidential and resilient.
+## Features
 
----
+- End‑to‑end encryption with sodium (Curve25519 box)
+- Message queue with priorities, retries, and dead‑letter handling
+- libp2p networking (TCP, Noise, Yamux, Request/Response, mDNS)
+- Desktop GUI (egui/eframe) for onboarding, contacts, compose/send, inbox
+- At‑rest encryption with passphrase support and rotation
+- Metrics/ops hooks and basic observability
 
-## 🚀 Key Features
+## Build
 
-- 🔒 **Military-Grade Encryption**  
-  XChaCha20-Poly1305 authenticated encryption with X25519 key exchange
-
-- 🌐 **Direct P2P Connections**  
-  No central servers—messages travel directly between peers
-
-- ⏱️ **Receiver-Controlled Delivery**  
-  Messages are only delivered when recipients actively check their inbox
-
-- 🔁 **Persistent Message Queue**  
-  Unsent messages are securely stored and retried automatically
-
-- ⚖️ **Bandwidth Prioritization**  
-  Small messages are delivered first—even during large file transfers
-
-- 🔧 **Configurable Ping Intervals**  
-  Set check-in frequency per contact (default: every 5 minutes)
-
----
-
-## 🔐 Security Architecture
-
-| Component          | Technology Used          | Security Features                                  |
-|-------------------|--------------------------|----------------------------------------------------|
-| **Encryption**     | Libsodium (XChaCha20)     | 256-bit keys, nonce reuse protection               |
-| **Key Exchange**   | X25519 ECDH               | Perfect Forward Secrecy                            |
-| **Transport**      | libp2p + Noise Protocol   | NAT traversal, encrypted peer-to-peer streams      |
-| **Storage**        | Sled (encrypted at rest)  | ACID-compliant, zero-copy I/O                      |
-| **Authentication** | HMAC-BLAKE2b              | Truncated 128-bit MACs                             |
-
-### 🛡️ Threat Model Mitigations
-
-| Threat Vector           | Pigeon's Protection                                        |
-|-------------------------|------------------------------------------------------------|
-| Message Interception    | End-to-end encryption with Perfect Forward Secrecy         |
-| Replay Attacks          | Nonces + Timestamps in all messages                        |
-| Traffic Analysis        | Fixed-size packet padding (512-byte blocks)                |
-| Denial of Service       | Per-peer rate limiting and connection quotas               |
-| Key Compromise          | Ephemeral session keys + OS-secured key storage            |
-
----
-
-## ⚙️ Getting Started
-
-### 🧰 Prerequisites
-
-- Rust 1.65+ ([Install via `rustup`](https://rustup.rs))
-- Linux or Windows (WSL recommended for Windows users)
-
-### 📦 Installation
-
+- Core/CLI:
 ```bash
-git clone https://github.com/yourusername/pigeon.git
-cd pigeon
-cargo build --release
- 
-## 📚 Documentation
+cargo build
+```
 
-- Internal docs are in `docs/`:
-  - `docs/M0_tasks.md`, `docs/M1_tasks.md`, `docs/M2_tasks.md` (milestone tracking)
-  - `docs/CODING_STANDARDS.md`
-  - `docs/TECH_DECISIONS_LOCKED_V0.md`
-  - `docs/PROJECT_LAYOUT.md`
+- With networking (enables libp2p and GUI networking):
+```bash
+cargo build --features network
+```
+
+## Run
+
+- CLI:
+```bash
+cargo run --bin secure-p2p-msg
+```
+
+- GUI with networking:
+```bash
+cargo run --features network --bin pigeon-gui -- --listen-addr "/ip4/0.0.0.0/tcp/4001"
+```
+
+If `--listen-addr` is omitted, an ephemeral port is used. You can also set `PIGEON_LISTEN_ADDR` or configure `pigeon/config.toml`.
+
+## Contacts: Required Inputs
+
+- Name: Non‑empty label.
+- Multiaddr: Must start with `/`. Examples:
+  - `/ip4/127.0.0.1/tcp/4001`
+  - `/ip4/192.168.1.50/tcp/4001`
+  - `/dns4/example.com/tcp/4001`
+  - Append `/p2p/<peer-id>` if available
+- PubKey (hex): 32‑byte sodium box public key encoded as 64 hex characters.
+
+## Config
+
+Template config is created on first run under your OS config dir (e.g., `%APPDATA%/pigeon/config.toml`). Keys:
+
+```toml
+[network]
+# listen_addr = "/ip4/0.0.0.0/tcp/4001"
+# enable_mdns = false
+```
+
+Environment overrides:
+`PIGEON_DATA_DIR`, `PIGEON_LOG_LEVEL`, `PIGEON_LISTEN_ADDR`, `PIGEON_ENABLE_MDNS`
+
+## License
+
+Apache-2.0
