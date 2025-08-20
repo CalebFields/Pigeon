@@ -212,6 +212,8 @@ flowchart LR
   Core --> OPS[Logs and Metrics]
 ```
 
+This diagram shows how the front-ends (CLI and GUI) call into the shared Core library. The Core is split into configuration, cryptography, messaging, networking, and storage concerns. Storage persists encrypted data to disk, networking communicates with remote peers, and the Core emits logs and metrics for observability.
+
 ### 8.2 Sequence – Send ➜ Receive
 ```mermaid
 sequenceDiagram
@@ -233,6 +235,8 @@ sequenceDiagram
   UI-->>U: Notify delivered/failed
 ```
 
+This sequence outlines message delivery: the user composes in the UI, which asks Messaging to serialize and sign, then persists to the outbox. Messaging hands the next item to Networking for transmission. The remote peer acknowledges, the result flows back, status is persisted, and the UI notifies the user.
+
 ### 8.3 Sequence – Unlock Flow
 ```mermaid
 sequenceDiagram
@@ -253,6 +257,8 @@ sequenceDiagram
   UI-->>U: Retry/backoff - locked state persists
 ```
 
+This sequence depicts unlocking protected data at startup: the UI prompts for a passphrase, Crypto derives a key and attempts to decrypt at-rest material from Storage. On success, keys are loaded and the app is unlocked; on failure, the UI remains in a locked state and prompts the user to retry.
+
 ### 8.4 State – Message Lifecycle
 ```mermaid
 stateDiagram-v2
@@ -265,6 +271,8 @@ stateDiagram-v2
   RetryScheduled --> Sending: Next attempt
   Sending --> DeadLetter: Max retries exceeded
 ```
+
+This state machine shows a message moving from Draft to the Outbox, being picked for Sending, awaiting an acknowledgment, and either reaching Delivered or being rescheduled with backoff. After exhausting retries, the message is moved to the DeadLetter state for inspection.
 
 ### 8.5 Deployment (Peer A ↔ Peer B)
 ```mermaid
@@ -294,4 +302,6 @@ flowchart TB
   Net --- TCP
   Net --- MDNS
 ```
+
+This deployment view shows two peers, each with a UI, Core library, and encrypted storage. The peers communicate via libp2p (Noise over TCP) across the Network. mDNS is depicted as a planned discovery mechanism for local networks.
 
