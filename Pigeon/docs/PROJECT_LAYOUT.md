@@ -4,14 +4,15 @@ Top-level
 - `Pigeon/` – Rust workspace crate (library + CLI binary)
 - `scripts/` – Dev helpers (PowerShell): `fmt.ps1`, `lint.ps1`, `test.ps1`, `check.ps1`
 - `readme.md` – Repo README
+- `Makefile` – convenience targets for CI/dev
 
 Inside `Pigeon/`
 - `Cargo.toml` / `Cargo.lock` – crate manifest
 - `readme.md` – crate README
 - `config/` – default TOML config(s)
 - `docs/` – internal docs
-  - `M0_tasks.md`, `M1_tasks.md`, `M2_tasks.md`
-  - `CODING_STANDARDS.md`, `TECH_DECISIONS_LOCKED_V0.md`
+  - `M0_tasks.md`, `M1_tasks.md`, `M2_tasks.md`, `M3_tasks.md`
+  - `PROJECT_LAYOUT.md`, `CODING_STANDARDS.md`, `TECH_DECISIONS_LOCKED_V0.md`
 - `src/` – source code
   - `lib.rs` – crate facade (exports modules)
   - `main.rs` – binary entry (CLI)
@@ -19,9 +20,14 @@ Inside `Pigeon/`
   - `error.rs` – unified error type
   - `identity.rs` – persistent key management (libp2p + sodium)
   - `crypto.rs` – crypto helpers
+  - `api.rs` – GUI-friendly core facade (contacts, inbox/search/export, send/compose, queue stats, onboarding, settings, ops)
+  - `ops.rs` – Prometheus-style metrics HTTP server
+  - `settings.rs` – accessibility and app state persisted as TOML
   - `ui/` – CLI
     - `mod.rs` – UI helpers (e.g., contact resolution)
     - `cli.rs` – clap CLI commands (contacts, inbox, send, listen, loops)
+  - `bin/` – auxiliary binaries
+    - `pigeon-gui.rs` – desktop GUI (egui/eframe)
   - `messaging/` – message pipeline
     - `message.rs` – `EnvelopeV1` (nonce + ciphertext + signature)
     - `compose.rs` – enqueue plaintext for send
@@ -33,7 +39,7 @@ Inside `Pigeon/`
     - `protocol.rs` – protocol aliases
     - `ping.rs` – ping behaviour and events
     - `rr.rs` – request/response codec and types
-    - `manager.rs` – orchestration (if used)
+    - `manager.rs` – orchestration
   - `storage/` – sled-backed persistence
     - `queue.rs` – message queue, inbox, dead-letter
     - `contacts.rs` – contact store (encrypted at rest)
@@ -46,6 +52,7 @@ Inside `Pigeon/`
 Conventions
 - Module dirs mirror domains; public API re-exported via `lib.rs`
 - Feature-gated networking (`network`) where applicable
+- GUI lives under `src/bin` and consumes the public `api.rs` facade
 - All sled values encrypted at rest; keys under app data dir
 - Tests avoid global state; use temp dirs and drop handles to release sled locks
 
