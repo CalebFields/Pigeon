@@ -192,12 +192,12 @@ Pigeon is a **desktop-first secure messaging client** built in Rust. It avoids c
 ### 8.1 Component/Context
 ```mermaid
 flowchart LR
-  subgraph UI [Front-Ends]
+  subgraph FrontEnds
     CLI[CLI (clap)]
     GUI[GUI (egui/eframe)]
   end
 
-  subgraph Core [Core Library (Rust)]
+  subgraph Core
     CFG[Config]
     CRYPTO[Crypto]
     MSG[Messaging]
@@ -205,13 +205,13 @@ flowchart LR
     ST[Storage]
   end
 
-  CLI -->|APIs| Core
-  GUI -->|IPC/APIs| Core
+  CLI --> Core
+  GUI --> Core
   MSG --> ST
   MSG --> NET
-  ST -->|"sled (AEAD at-rest)"| DISK[(Disk)]
-  NET <--> |"libp2p (Noise over TCP), mDNS (planned)"| RPEER{{Remote Peer}}
-  Core -->|"tracing / metrics"| OPS[(Logs & Metrics)]
+  ST --> DISK[(Disk)]
+  NET <--> RPEER((Remote Peer))
+  Core --> OPS[(Logs & Metrics)]
 ```
 
 ### 8.2 Sequence – Send ➜ Receive
@@ -227,11 +227,9 @@ sequenceDiagram
   U->>UI: Compose message
   UI->>MSG: Serialize + sign -> envelope
   MSG->>ST: Enqueue (outbox, priority)
-  par Background worker
-    MSG->>NET: Dequeue and send (Request/Response)
-    NET->>RP: Noise session, deliver envelope
-    RP-->>NET: ACK
-  end
+  MSG->>NET: Dequeue and send (Request/Response)
+  NET->>RP: Noise session, deliver envelope
+  RP-->>NET: ACK
   NET-->>MSG: Delivery result
   MSG->>ST: Persist/update status (inbox/outbox)
   UI-->>U: Notify delivered/failed
@@ -249,10 +247,10 @@ sequenceDiagram
   UI->>CR: Prompt for passphrase
   CR->>CR: Derive key (Argon2id)
   CR->>ST: Decrypt identity/key material
-  alt success
+  alt
     ST-->>CR: Keys loaded
     UI-->>U: Unlocked; sensitive actions enabled
-  else failure
+  else
     ST-->>CR: Decryption error
     UI-->>U: Retry/backoff; locked state persists
   end
@@ -283,8 +281,8 @@ flowchart TB
   end
 
   subgraph Net[Network]
-    TCP[ TCP ]
-    MDNS[ mDNS (planned) ]
+    TCP[TCP]
+    MDNS[mDNS (planned)]
   end
 
   subgraph PeerB[Peer B]
