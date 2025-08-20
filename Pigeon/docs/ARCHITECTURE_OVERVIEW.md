@@ -187,8 +187,6 @@ Pigeon is a **desktop-first secure messaging client** built in Rust. It avoids c
 
 ## 8. Diagram Gallery (Mermaid)
 
-> These render natively on GitHub/GitLab and most docs sites (MkDocs/Docusaurus with Mermaid enabled). Keep them in this file or split into `docs/diagrams/`.
-
 ### 8.1 Component/Context
 ```mermaid
 flowchart LR
@@ -247,10 +245,11 @@ sequenceDiagram
   UI->>CR: Prompt for passphrase
   CR->>CR: Derive key (Argon2id)
   CR->>ST: Decrypt identity/key material
-  alt Success
+  opt Unlock succeeds
     ST-->>CR: Keys loaded
     UI-->>U: Unlocked; sensitive actions enabled
-  else Failure
+  end
+  opt Unlock fails
     ST-->>CR: Decryption error
     UI-->>U: Retry/backoff; locked state persists
   end
