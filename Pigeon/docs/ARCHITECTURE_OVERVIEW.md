@@ -27,7 +27,7 @@ Pigeon is a **desktop-first secure messaging client** built in Rust. It avoids c
   - Storage directory paths
   - Security policies (e.g., passphrase lock enabled)
 
-**Why it matters:** ensures consistent runtime behavior across platforms and environments.
+**Purpose** ensures consistent runtime behavior across platforms and environments.
 
 ---
 
@@ -42,7 +42,7 @@ Pigeon is a **desktop-first secure messaging client** built in Rust. It avoids c
   - Derive short auth tokens via BLAKE2b-MAC when needed
   - Manage nonces by prefixing the ciphertext with the randomly generated nonce
 
-**Why it matters:** provides authenticated encryption for messages and at-rest data with well-vetted primitives.
+**Purpose:** provides authenticated encryption for messages and at-rest data with well-vetted primitives.
 
 ---
 
@@ -55,7 +55,7 @@ Pigeon is a **desktop-first secure messaging client** built in Rust. It avoids c
   - Dead-letter queues for unrecoverable failures.
   - Configurable retry strategies.
 
-**Why it matters:** guarantees reliable, authenticated message delivery even with unstable networks.
+**Purpose:** guarantees reliable, authenticated message delivery even with unstable networks.
 
 ---
 
@@ -74,7 +74,7 @@ Pigeon is a **desktop-first secure messaging client** built in Rust. It avoids c
   - QUIC is not enabled in the current crate configuration
   - A higher-level message protocol can be built atop the provided Request/Response codec
 
-**Why it matters:** provides the secure, multiplexed transport needed for peer-to-peer exchange.
+**Purpose:** provides the secure, multiplexed transport needed for peer-to-peer exchange.
 
 ---
 
@@ -86,7 +86,7 @@ Pigeon is a **desktop-first secure messaging client** built in Rust. It avoids c
   - Contacts
   - Messages (inbox, outbox, dead-letter)
 
-**Why it matters:** protects user data from local disk compromise and ensures recoverability.
+**Purpose:** protects user data from local disk compromise and ensures recoverability.
 
 ---
 
@@ -103,7 +103,7 @@ Pigeon is a **desktop-first secure messaging client** built in Rust. It avoids c
     - Live receive display and notifications
     - Queue view with retry/backoff visibility
 
-**Why it matters:** provides accessible workflows for both technical and non-technical users.
+**Purpose:** provides accessible workflows for users.
 
 ---
 
@@ -117,7 +117,7 @@ Pigeon is a **desktop-first secure messaging client** built in Rust. It avoids c
   - Settings: accessibility settings and app state (onboarding flag)
   - Ops: start metrics server, update checks
 
-**Why it matters:** concentrates user-facing operations in a stable, testable API.
+**Purpose:** concentrates user-facing operations in a stable, testable API.
 
 ---
 
@@ -245,14 +245,12 @@ sequenceDiagram
   UI->>CR: Prompt for passphrase
   CR->>CR: Derive key (Argon2id)
   CR->>ST: Decrypt identity/key material
-  opt Unlock succeeds
-    ST-->>CR: Keys loaded
-    UI-->>U: Unlocked; sensitive actions enabled
-  end
-  opt Unlock fails
-    ST-->>CR: Decryption error
-    UI-->>U: Retry/backoff; locked state persists
-  end
+  Note over CR,UI: Unlock succeeds
+  ST-->>CR: Keys loaded
+  UI-->>U: Unlocked and actions enabled
+  Note over CR,UI: Unlock fails
+  ST-->>CR: Decryption error
+  UI-->>U: Retry/backoff - locked state persists
 ```
 
 ### 8.4 State – Message Lifecycle
