@@ -212,7 +212,7 @@ flowchart LR
   Core --> OPS[Logs and Metrics]
 ```
 
-This diagram shows how the front-ends (CLI and GUI) call into the shared Core library. The Core is split into configuration, cryptography, messaging, networking, and storage concerns. Storage persists encrypted data to disk, networking communicates with remote peers, and the Core emits logs and metrics for observability.
+Front-ends call a stable core API; the core coordinates config, crypto, messaging, networking, and storage. Data is encrypted at rest before persistence, peer I/O is handled by libp2p, and logs/metrics are emitted for operations.
 
 ### 8.2 Sequence – Send ➜ Receive
 ```mermaid
@@ -235,7 +235,7 @@ sequenceDiagram
   UI-->>U: Notify delivered/failed
 ```
 
-This sequence outlines message delivery: the user composes in the UI, which asks Messaging to serialize and sign, then persists to the outbox. Messaging hands the next item to Networking for transmission. The remote peer acknowledges, the result flows back, status is persisted, and the UI notifies the user.
+Sending follows a pipeline: compose → sign/encrypt → enqueue → network send → ACK → status update → user notification. On failure, the item stays queued and is retried according to backoff policy.
 
 ### 8.3 Sequence – Unlock Flow
 ```mermaid
@@ -257,7 +257,7 @@ sequenceDiagram
   UI-->>U: Retry/backoff - locked state persists
 ```
 
-This sequence depicts unlocking protected data at startup: the UI prompts for a passphrase, Crypto derives a key and attempts to decrypt at-rest material from Storage. On success, keys are loaded and the app is unlocked; on failure, the UI remains in a locked state and prompts the user to retry.
+Startup unlock: prompt for passphrase, derive a KEK with Argon2id, decrypt the sealed at‑rest key, and load identity/keys. Success enables sensitive operations; failure keeps the app locked and allows retries.
 
 ### 8.4 State – Message Lifecycle
 ```mermaid
@@ -272,7 +272,7 @@ stateDiagram-v2
   Sending --> DeadLetter: Max retries exceeded
 ```
 
-This state machine shows a message moving from Draft to the Outbox, being picked for Sending, awaiting an acknowledgment, and either reaching Delivered or being rescheduled with backoff. After exhausting retries, the message is moved to the DeadLetter state for inspection.
+A message advances from Draft to Outbox, is scheduled and sent, then either confirmed (Delivered) or rescheduled with exponential backoff. After the retry budget is exhausted it moves to DeadLetter for manual handling.
 
 ### 8.5 Deployment (Peer A ↔ Peer B)
 ```mermaid
@@ -303,5 +303,5 @@ flowchart TB
   Net --- MDNS
 ```
 
-This deployment view shows two peers, each with a UI, Core library, and encrypted storage. The peers communicate via libp2p (Noise over TCP) across the Network. mDNS is depicted as a planned discovery mechanism for local networks.
+Peers operate symmetrically: each listens/dials with libp2p (Noise over TCP), exchanges envelopes via request/response, and commits results to local encrypted storage. Discovery (e.g., mDNS) can automate addressing when enabled.
 
