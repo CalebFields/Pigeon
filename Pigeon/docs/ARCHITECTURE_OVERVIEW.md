@@ -193,8 +193,8 @@ Pigeon is a **desktop-first secure messaging client** built in Rust. It avoids c
 ```mermaid
 flowchart LR
   subgraph FrontEnds
-    CLI[CLI (clap)]
-    GUI[GUI (egui/eframe)]
+    CLI[CLI]
+    GUI[GUI]
   end
 
   subgraph Core
@@ -209,9 +209,9 @@ flowchart LR
   GUI --> Core
   MSG --> ST
   MSG --> NET
-  ST --> DISK[(Disk)]
-  NET <--> RPEER((Remote Peer))
-  Core --> OPS[(Logs & Metrics)]
+  ST --> DISK[Disk]
+  NET <--> RPEER[Remote Peer]
+  Core --> OPS[Logs and Metrics]
 ```
 
 ### 8.2 Sequence – Send ➜ Receive
@@ -247,10 +247,10 @@ sequenceDiagram
   UI->>CR: Prompt for passphrase
   CR->>CR: Derive key (Argon2id)
   CR->>ST: Decrypt identity/key material
-  alt
+  alt Success
     ST-->>CR: Keys loaded
     UI-->>U: Unlocked; sensitive actions enabled
-  else
+  else Failure
     ST-->>CR: Decryption error
     UI-->>U: Retry/backoff; locked state persists
   end
@@ -282,7 +282,7 @@ flowchart TB
 
   subgraph Net[Network]
     TCP[TCP]
-    MDNS[mDNS (planned)]
+    MDNS[mDNS planned]
   end
 
   subgraph PeerB[Peer B]
